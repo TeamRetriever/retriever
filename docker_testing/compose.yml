@@ -1,0 +1,63 @@
+# Experimenting with running a distributed jaeger architecture with elasticsearch backend
+
+networks:
+  jaeger-test:
+    driver: bridge
+
+services:
+  # jaeger collector
+  collector:
+    image: jaegertracing/jaeger:2.11.0
+    command: ["--config", "/etc/collector/config.yml"]
+    volumes: 
+      - ./collector/config.yml:/etc/collector/config.yml
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch # not sure if needed
+      - ES_SERVER_URLS=http://elasticsearch:9200 # not sure if needed
+    ports:
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    networks:
+      - jaeger-test
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+# jaeger query service
+  query:
+    image: jaegertracing/jaeger:2.11.0
+    command: ["--config", "/etc/query/config.yml"]
+    volumes: 
+      - ./query/config.yml:/etc/query/config.yml
+      - ./query/config-ui.json:/etc/query/config-ui.json
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch # not sure if needed
+      - ES_SERVER_URLS=http://elasticsearch:9200 # not sure if needed
+    ports:
+      - "16686:16686"
+    networks:
+      - jaeger-test
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0 
+    environment: 
+      - discovery.type=single-node  # standalone instance setting 
+      - xpack.security.enabled=false  # security feature disabled for convenience in local dev 
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # essentially keeps resource usage to 512 mb 
+    ports: 
+      - "9200:9200"
+    networks: 
+      - jaeger-test
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
