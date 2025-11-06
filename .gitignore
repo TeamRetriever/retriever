@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IDE - JetBrains (WebStorm, IntelliJ, etc)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Temp files
+*.tmp
+*.swp
+*.swo
+*~
