@@ -61,3 +61,15 @@ services:
       retries: 12
       start_period: 60s
 
+  mcp:
+    image: philipsknapp/jaeger_mcp_test
+    environment:
+      - URL=http://query:16686/api/v3/services
+    ports:
+      - "3000:3000"
+    networks:
+      - jaeger-test
+    depends_on:
+      query:
+        condition: service_started
+    
