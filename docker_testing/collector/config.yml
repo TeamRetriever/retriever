@@ -4,7 +4,13 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [jaeger_storage_exporter]
+      exporters: [jaeger_storage_exporter, spanmetrics]
+
+
+    metrics: 
+      receivers: [spanmetrics]
+      processors: [batch]
+      exporters: [prometheus]
   # telemetry:
   #   resource:
   #     service.name: jaeger
@@ -26,6 +32,8 @@ extensions:
     use_v2: true
     http:
 
+
+
   # jaeger_query:
   #   storage:
   #     traces: some_storage
@@ -41,6 +49,22 @@ extensions:
           server_urls:
             - http://elasticsearch:9200
 
+
+connectors: 
+  spanmetrics:  # spanmetrics will generate for every span that flows through a counter measure (how many spans) and a histogram metric (duration distribution) 
+    histogram:  
+      explicit: # explicitly setting bucket boundaries (another option is exponential) 
+        buckets: [100us, 1ms, 2ms, 6ms, 10ms, 100ms, 250ms] # way to calculate percentiles (p50, p95, p99, etc) (these values range from very fast to very slow in microservice latency) 
+    dimensions: # labels that will be attached to generated metrics. Connector will look at span attributes and extract them as metric labels. 
+      - name: http.method 
+        default: GET 
+      - name: http.status_code 
+      - name: service_name 
+    dimensions_cache_size: 1000 # caches unique dimension combinations  (this cache size is generally good for a medium deployment size ). Do not add high cardinality dimensions like users or the cache could explode lol 
+    aggregation_temporality: "CUMULATIVE" #determines how metrics are counted over time.  Cumulative means it will start at 0 and keep growing. It includes all values from the start 
+    metrics_flush_interval: 15s  # connector will export metrics this often 
+
+
 receivers:
   otlp:
     protocols:
@@ -55,3 +79,6 @@ processors:
 exporters:
   jaeger_storage_exporter:
     trace_storage: es_storage
+
+  prometheus: 
+    endpoint: 0.0.0.0:8889

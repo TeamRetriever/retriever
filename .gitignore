@@ -29,6 +29,9 @@ Thumbs.db
 *.iws
 *.ipr
 
+# Secrets
+slack_webhook.txt
+
 # Testing
 coverage/
 .nyc_output/
