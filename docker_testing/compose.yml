@@ -7,6 +7,8 @@ networks:
 secrets: 
   slack_webhook: 
     file: ./slack_webhook.txt
+  slack_channel: 
+    file: ./slack_channel.txt
 
 services:
   # jaeger collector
@@ -92,12 +94,15 @@ services:
     image: prom/alertmanager:latest
     secrets: 
       - slack_webhook
+      - slack_channel
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
     environment:
       - SLACK_WEBHOOK_URL_FILE=/run/secrets/slack_webhook
     volumes:  
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    profiles: 
+      - alerts # will start only when as apart of an additional argument in compose command 
   
     ports:
       - "9093:9093"

@@ -80,31 +80,53 @@ Retriever integrates **Prometheus monitoring** and **AlertManager alerting** int
 
 ---
 
+
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Docker & Docker Compose
 
 ### 1️⃣ Setup Directory Structure
-
 ```bash
 cd docker_testing
-
 ```
 
+### 2️⃣ Choose Your Setup
 
-### 2️⃣  Start the Stack
-
+#### Option A: Basic Setup (No Alerts)
 ```bash
+# Start services without AlertManager
 docker compose up -d
-```
 
-### 3️⃣Verify Services
-
-```bash
+# Verify services
 docker compose ps
+
+# Stop services
+docker compose down
 ```
+
+#### Option B: With Slack Alerts
+```bash
+# 1. Configure Slack integration
+echo "https://hooks.slack.com/services/YOUR/WEBHOOK/URL" > slack_webhook
+echo "#your-channel-name" > slack_channel
+
+# 2. Start services with AlertManager
+docker compose --profile with-alerts up -d
+
+# 3. Verify services
+docker compose ps
+
+# 4. Stop services
+docker compose --profile with-alerts down
+```
+
+**To get your Slack webhook:**
+1. Go to https://api.slack.com/messaging/webhooks
+2. Create an incoming webhook for your workspace
+3. Copy the webhook URL
+
+
 
 All services should show as `Up` or `healthy`.
 
