@@ -108,18 +108,19 @@ docker compose down
 #### Option B: With Slack Alerts
 ```bash
 # 1. Configure Slack integration
-echo "https://hooks.slack.com/services/YOUR/WEBHOOK/URL" > slack_webhook
-echo "#your-channel-name" > slack_channel
+echo "https://hooks.slack.com/services/YOUR/WEBHOOK/URL" > slack_webhook.txt
+echo "#your-channel-name" > slack_channel.txt
 
 # 2. Start services with AlertManager
-docker compose --profile with-alerts up -d
+docker compose --profile alerts up -d
 
 # 3. Verify services
 docker compose ps
 
 # 4. Stop services
-docker compose --profile with-alerts down
+docker compose --profile alerts down
 ```
+
 
 **To get your Slack webhook:**
 1. Go to https://api.slack.com/messaging/webhooks
