@@ -14,7 +14,7 @@ route: # this separates alerts by the service and the name of the alert.
 receivers: 
   - name: 'slack-alerts' 
     slack_configs:
-      - channel: '#alert-testing-channel-bprz'
+      - channel: /run/secrets/slack_channel  # Read channel from secret file
         icon_emoji: ':rotating_light:'
         title: '{{ if eq .Status "firing" }}🚨{{ else }}✅{{ end }} {{ .GroupLabels.alertname }}'
         color: |- # |- is yaml syntax for multiline string that strips new lines. 
