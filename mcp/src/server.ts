@@ -1,12 +1,41 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
+import z from "zod";
 
 // initialize the server
 const server = new McpServer({
   name: "retriever-mcp",
   version: "0.0.1",
 });
+
+server.registerTool(
+  "list services",
+  {
+    title: "Traced Microservices",
+    description: "Get a list of all microservices with spans logged in Jaeger",
+    inputSchema: {},
+    outputSchema: { result: z.array(z.string()) },
+  },
+  async () => {
+    const url = process.env.URL;
+
+    if (!url) {
+      throw new Error("No URL environmental variable defined!");
+    }
+
+    console.log(`beginning query to ${url}`);
+    const output = await fetch(url);
+    let traceList: { services: Array<String> } = await output.json();
+
+    console.log(traceList.services);
+
+    return {
+      content: [{ type: "text", text: JSON.stringify(traceList.services) }],
+      structuredContent: { result: traceList.services },
+    };
+  },
+);
 
 // HTTP transport
 const app = express();
