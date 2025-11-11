@@ -4,7 +4,7 @@
 
 [![Jaeger](https://img.shields.io/badge/Jaeger-v2.11.0-60D5F0?logo=jaeger)](https://www.jaegertracing.io/)
 [![Prometheus](https://img.shields.io/badge/Prometheus-latest-E6522C?logo=prometheus)](https://prometheus.io/)
-[![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.11.0-005571?logo=elasticsearch)](https://www.elastic.co/)
+[![OpenSearch](https://img.shields.io/badge/OpenSearch-2.11.1-005571?logo=opensearch)](https://opensearch.org/)
 
 ---
 
@@ -28,7 +28,7 @@ Retriever integrates **Prometheus monitoring** and **AlertManager alerting** int
 - 📊 **Distributed Tracing** via Jaeger
 - 📈 **Metrics Collection** via Prometheus
 - 🚨 **Smart Alerting** via AlertManager
-- 💾 **Persistent Storage** via Elasticsearch
+- 💾 **Persistent Storage** via OpenSearch
 - 🤖 **AI Integration** via MCP Server
 
 ---
@@ -51,7 +51,7 @@ Retriever integrates **Prometheus monitoring** and **AlertManager alerting** int
           │              │
           ▼              ▼
    ┌─────────────┐  ┌──────────────┐
-   │Elasticsearch│  │  Prometheus  │
+   │  Opensearch │  │  Prometheus  │
    └──────┬──────┘  └──────┬───────┘
           │                │
           ▼                ▼
@@ -72,7 +72,7 @@ Retriever integrates **Prometheus monitoring** and **AlertManager alerting** int
 |-----------|---------|------|
 | **Jaeger Collector** | Receives traces, generates metrics | 4317, 4318, 8889 |
 | **Jaeger Query** | UI and API for querying traces | 16686 |
-| **Elasticsearch** | Persistent trace storage | 9200 |
+| **Opensearch** | Persistent trace storage | 9200 |
 | **Prometheus** | Metrics aggregation and alerting | 9090 |
 | **AlertManager** | Alert routing and notifications | 9093 |
 | **HotROD** | Demo application for testing | 8080, 8083 |
@@ -287,7 +287,7 @@ curl http://localhost:8889/metrics | grep calls_total
 2. Check if `jaeger-collector` target is `UP`
 3. Last Scrape should show recent timestamp
 
-### Verify Elasticsearch
+### Verify Opensearch
 
 ```bash
 # Check cluster health
@@ -342,7 +342,7 @@ OTel Collector → Jaeger (combined) → Prometheus
 
 **This Setup:**
 ```
-Jaeger Collector (IS an OTel Collector) → Elasticsearch + Prometheus
+Jaeger Collector (IS an OTel Collector) → Opensearch + Prometheus
 Jaeger Query (separate service) → UI/API
 ```
 
@@ -352,7 +352,7 @@ Jaeger Query (separate service) → UI/API
 
 1. **HotROD** sends OTLP traces → Collector (ports 4317/4318)
 2. **Collector** processes traces:
-   - Stores in Elasticsearch
+   - Stores in Opensearch
    - Generates metrics via spanmetrics
 3. **Prometheus** scrapes metrics from Collector (port 8889)
 4. **Alert rules** evaluate conditions

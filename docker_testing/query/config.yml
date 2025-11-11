@@ -26,17 +26,17 @@ extensions:
 
   jaeger_query:
     storage:
-      traces: es_storage
+      traces: opensearch_storage
     ui:
       config_file: /etc/query/config-ui.json
 
   jaeger_storage: # manages storage backend. It can perform actions like handles connection pooling, retries, health checks, it can also define multiple backends. 
     backends:
-      es_storage:
-        elasticsearch:
+      opensearch_storage:
+        opensearch:
           # Correct key for Jaeger v2 with Elasticsearch
           server_urls:
-            - http://elasticsearch:9200
+            - http://opensearch:9200
 
 receivers:
   nop:

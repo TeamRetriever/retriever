@@ -1,4 +1,4 @@
-# Experimenting with running a distributed jaeger architecture with elasticsearch backend
+# Experimenting with running a distributed jaeger architecture with openearch backend
 
 networks:
   jaeger-test:
@@ -18,8 +18,8 @@ services:
     volumes: 
       - ./collector/config.yml:/etc/collector/config.yml
     environment:
-      - SPAN_STORAGE_TYPE=elasticsearch # not sure if needed
-      - ES_SERVER_URLS=http://elasticsearch:9200 # not sure if needed
+      - SPAN_STORAGE_TYPE=opensearch # not sure if needed
+      - ES_SERVER_URLS=http://opensearch:9200 # not sure if needed
     ports:
       - "4317:4317"    # OTLP gRPC receiver
       - "4318:4318"    # OTLP HTTP receiver
@@ -27,7 +27,7 @@ services:
     networks:
       - jaeger-test
     depends_on:
-      elasticsearch:
+      opensearch:
         condition: service_healthy
     restart: unless-stopped
 
@@ -39,27 +39,28 @@ services:
       - ./query/config.yml:/etc/query/config.yml
       - ./query/config-ui.json:/etc/query/config-ui.json
     environment:
-      - SPAN_STORAGE_TYPE=elasticsearch # not sure if needed
-      - ES_SERVER_URLS=http://elasticsearch:9200 # not sure if needed
+      - SPAN_STORAGE_TYPE=opensearch # not sure if needed
+      - ES_SERVER_URLS=http://opensearch:9200 # not sure if needed
     ports:
       - "16686:16686"
     networks:
       - jaeger-test
     depends_on:
-      elasticsearch:
+      opensearch:
         condition: service_healthy
     restart: unless-stopped
 
 
     
 
-  # elasticsearch
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0 
+  # opensearch
+  opensearch:
+    image: opensearchproject/opensearch:2.11.1 
     environment: 
       - discovery.type=single-node  # standalone instance setting 
-      - xpack.security.enabled=false  # security feature disabled for convenience in local dev 
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # essentially keeps resource usage to 512 mb 
+      - DISABLE_SECURITY_PLUGIN=true  # Disable security for local dev (equivalent to xpack.security.enabled=false)
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m  # Limit memory usage to 512MB
+      - bootstrap.memory_lock=true  # Recommended for production-like performance
     ports: 
       - "9200:9200"
     networks: 
