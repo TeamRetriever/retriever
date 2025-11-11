@@ -10,7 +10,7 @@ const server = new McpServer({
 });
 
 server.registerTool(
-  "list services",
+  "list_services",
   {
     title: "Traced Microservices",
     description: "Get a list of all microservices with spans logged in Jaeger",

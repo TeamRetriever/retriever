@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { trace } from 'console';
 import express from 'express';
 import { z } from 'zod';
 
@@ -12,7 +11,7 @@ const server = new McpServer({
 
 // Add an addition tool
 server.registerTool(
-    'list services',
+    'list_services',
     {
         title: 'Traced Microservices',
         description: 'Get a list of all microservices with spans logged in Jaeger',
