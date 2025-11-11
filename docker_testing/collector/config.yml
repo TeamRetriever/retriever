@@ -44,10 +44,10 @@ extensions:
 
   jaeger_storage:
     backends:
-      es_storage:
-        elasticsearch:
+      opensearch_storage:
+        opensearch:
           server_urls:
-            - http://elasticsearch:9200
+            - http://opensearch:9200
 
 
 connectors: 
@@ -78,7 +78,7 @@ processors:
 
 exporters:
   jaeger_storage_exporter:
-    trace_storage: es_storage
+    trace_storage: opensearch_storage
 
   prometheus: 
     endpoint: 0.0.0.0:8889
