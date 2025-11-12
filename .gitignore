@@ -52,3 +52,7 @@ logs/
 *.tfstate
 *.tfstate.backup
 crash.log
+
+
+# sample trace data 
+sample_trace.json 
