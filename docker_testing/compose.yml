@@ -112,7 +112,7 @@ services:
     restart: unless-stopped
 
   mcp:
-    image: philipsknapp/jaeger_mcp_test
+    build: ../retriever_mcp
     platform: linux/amd64
     environment:
       - URL=http://query:16686/api/v3/services
