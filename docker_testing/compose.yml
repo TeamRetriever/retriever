@@ -115,7 +115,7 @@ services:
     build: ../retriever_mcp
     platform: linux/amd64
     environment:
-      - URL=http://query:16686/api/v3/services
+      - URL=http://query:16686
     ports:
       - "3000:3000"
     networks:
