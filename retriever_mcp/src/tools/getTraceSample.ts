@@ -18,30 +18,29 @@ export const getTraceSampleTool = {
   },
   outputSchema: { result: z.any() },
   handler: async (params: { service?: string; lookback?: string }) => {
-    const baseUrl = process.env.URL;
+    const jaegerUrl = process.env.URL;
 
-    if (!baseUrl) {
+    if (!jaegerUrl) {
       throw new Error("No URL environmental variable defined!");
     }
 
-    // Extract base URL (remove /api/v3/services)
-    const jaegerBaseUrl = baseUrl.replace("/api/v3/services", "");
+    
 
     // If no service specified, get the first available service
     let serviceName = params.service;
     if (!serviceName) {
       console.log("No service specified, fetching first available service...");
-      const servicesResponse = await fetch(baseUrl);
+      const servicesUrl = `${jaegerUrl}/api/v3/services`;
+      const servicesResponse = await fetch(servicesUrl);
       const servicesData: { services: string[] } = await servicesResponse.json();
       serviceName = servicesData.services[0];
       console.log(`Using service: ${serviceName}`);
     }
-
     // Use lookback parameter (default to 1 hour)
     const lookback = params.lookback || "1h";
 
     // Build traces URL using the legacy API that works
-    const tracesUrl = `${jaegerBaseUrl}/api/traces?service=${serviceName}&lookback=${lookback}&limit=1`;
+    const tracesUrl = `${jaegerUrl}/api/traces?service=${serviceName}&lookback=${lookback}&limit=1`;
 
     console.log(`Fetching sample trace from: ${tracesUrl}`);
 

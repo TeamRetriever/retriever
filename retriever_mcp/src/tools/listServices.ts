@@ -7,14 +7,14 @@ export const listServicesTool = {
   inputSchema: {},
   outputSchema: { result: z.array(z.string()) },
   handler: async () => {
-    const url = process.env.URL;
+    const jaegerUrl = process.env.URL;
 
-    if (!url) {
+    if (!jaegerUrl) {
       throw new Error("No URL environmental variable defined!");
     }
-
-    console.log(`beginning query to ${url}`);
-    const output = await fetch(url);
+    const servicesUrl = `${jaegerUrl}/api/v3/services`;
+    console.log(`beginning query to ${servicesUrl}`);
+    const output = await fetch(servicesUrl);
     const traceList: { services: Array<string> } = await output.json();
 
     console.log(traceList.services);
