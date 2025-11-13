@@ -25,7 +25,8 @@ export const listServicesTool = {
     };
 
     return {
-      content: [textContent]
+        content: [textContent], 
+        structuredContent: {result: traceList.services}
     };
   },
 };

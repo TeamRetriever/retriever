@@ -61,7 +61,8 @@ export const getTraceSampleTool = {
 
     // Return it so mcp client can see it
     return {
-      content: [textContent]
+      content: [textContent], 
+      structuredContent: {result: data}
     };
   },
 };
