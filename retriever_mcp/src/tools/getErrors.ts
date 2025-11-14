@@ -1,6 +1,7 @@
 import z from "zod";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
-import type { ServiceErrorResult } from "../types/types";
+import {parseLookback, searchAllServices, extractErrorSummary} from "../utils/toolHelpers"
+import { JaegerOTLPResponse } from "../types/types";
 
 export const getErrorsTool = {
     name: "get_errors", 
@@ -71,97 +72,19 @@ export const getErrorsTool = {
             throw new Error(`Jaeger API returned ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json(); 
+        const data: JaegerOTLPResponse= await response.json(); 
+        
+        // data is significantly chopped down and key information related to each span's error are captured to make data collected much smaller. 
+        const summary = extractErrorSummary(data, params.limit || 5)
 
         const textContent: TextContent = {
             type: 'text', 
-            text: JSON.stringify(data, null, 2), 
+            text: JSON.stringify(summary, null, 2), 
         };  
 
         return {
             content: [textContent], 
-            structuredContent: {result: data}
+            structuredContent: {result: summary}
         };  
     }  
 }; 
-
-
-
-
-async function searchAllServices(
-    jaegerUrl: string,
-    startTime: Date,
-    endTime: Date,
-    limit: number
-  ) {
-    const servicesResponse = await fetch(`${jaegerUrl}/api/v3/services`);
-    const servicesData = await servicesResponse.json();
-    const services = servicesData.services || [];
-  
-    const allErrors: ServiceErrorResult[] = [];
-  
-    for (const service of services) {
-      try {
-        const queryParams = new URLSearchParams({
-          "query.service_name": service,
-          "query.start_time_min": startTime.toISOString(),
-          "query.start_time_max": endTime.toISOString(),
-          "query.attributes.error": "true",
-          "query.search_depth": limit.toString(),
-        });
-  
-        const response = await fetch(`${jaegerUrl}/api/v3/traces?${queryParams}`);
-        if (!response.ok) continue;
-  
-        const data = await response.json();
-        if (data.result?.resourceSpans?.length > 0) {
-          allErrors.push({
-            service,
-            error_count: data.result.resourceSpans.length,
-            errors: data,
-          });
-        }
-      } catch (error) {
-        console.error(`Error querying ${service}:`, error);
-      }
-    }
-  
-    const summary = `Errors found in ${allErrors.length}/${services.length} services:\n${allErrors.map((e) => `• ${e.service}: ${e.error_count} errors`).join("\n")}`;
-  
-    const result = {
-        summary: { total: services.length, with_errors: allErrors.length },
-        errors_by_service: allErrors
-      };
-      
-      const textContent: TextContent = {
-        type: "text",
-        text: JSON.stringify(result, null, 2)
-      };
-
-      return {
-        content: [textContent],
-        structuredContent: { result }
-      };
-  }
-
-
-
-// convert lookback time to match jaeger ms format 
-function parseLookback(lookback: string): number {
-    const match = lookback.match(/^(\d+)(h|m|d|s)$/);
-    if (!match) {
-      throw new Error(`Invalid lookback format: ${lookback}`);
-    }
-  
-    const value = parseInt(match[1]);
-    const unit = match[2];
-  
-    const multipliers: { [key: string]: number } = {
-      's': 1000,
-      'm': 60 * 1000,
-      'h': 60 * 60 * 1000,
-      'd': 24 * 60 * 60 * 1000,
-    };
-  
-    return value * multipliers[unit];
-  }
