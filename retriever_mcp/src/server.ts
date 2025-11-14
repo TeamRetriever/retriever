@@ -35,9 +35,9 @@ server.registerTool(
 server.registerTool(
   getErrorsTool.name,
 {
-  title: "Get Specifified Trace Errors",
-  description: getErrorsTool.description,
-  inputSchema: getErrorsTool.inputSchema,
+  title: "Query Error Traces",
+  description: getErrorsTool.description, 
+  inputSchema: getErrorsTool.inputSchema, 
   outputSchema: getErrorsTool.outputSchema
 },
 getErrorsTool.handler
