@@ -2,19 +2,42 @@ import { z } from "zod";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
 
 export const getTraceSampleTool = {
-  name: "get_trace_sample",
-  description: "Get a sample trace with full structure for debugging",
+  name: "find_traces",
+  description: "given parameters, return traces with specified structure",
   inputSchema: {
-    service: z
+    service_name: z
       .string()
       .optional()
       .describe(
-        "Service name to get traces from (optional, defaults to first available service)"
+        "Service name to get traces from (optional, defaults to first available service)",
       ),
-    lookback: z
+    operation_name: z
       .string()
       .optional()
-      .describe('Time range to look back (e.g., "1h", "30m", "2d"). Default: "1h"'),
+      .describe(
+        "operation_name filters spans by a specific operation / span name.",
+      ),
+    start_time_min: z
+      .string()
+      .optional()
+      .describe(
+        "start_time_min is the start of the time interval (inclusive) for the query. RFC-3339ns format (e.g., '2025-11-13T10:30:00Z'). If user says '30 minutes ago', convert to absolute timestamp. This field is required.",
+      ),
+    start_time_max: z
+      .string()
+      .optional()
+      .describe(
+        "start_time_max is the end of the time interval (exclusive) for the query. RFC-3339ns format (e.g., '2025-11-13T10:30:00Z'). If user says '30 minutes ago', this time is now. This field is required.",
+      ),
+    max_traces: z
+      .number()
+      .int()
+      .min(1)
+      .max(200) // Maybe increase, 1000 or so, later?
+      .optional()
+      .describe(
+        "Maximum number of traces to return (approximate). Defaults to 20. Higher values may result in slower responses and more data to analyze.",
+      ),
   },
   outputSchema: { result: z.any() },
   handler: async (params: { service?: string; lookback?: string }) => {
