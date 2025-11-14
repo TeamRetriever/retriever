@@ -38,17 +38,42 @@ export const getTraceSampleTool = {
       ),
   },
   outputSchema: { result: z.any() },
-  handler: async (params: { service?: string; lookback?: string }) => {
+  handler: async (params: {
+    service_name?: string;
+    operation_name?: string;
+    start_time_min?: string;
+    start_time_max?: string;
+    max_traces?: number;
+  }) => {
     const jaegerUrl = process.env.URL;
-
     if (!jaegerUrl) {
       throw new Error("No URL environmental variable defined!");
     }
 
-    
+    // Handle default values for params
+    const now = new Date();
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    const startTimeMin =
+      params.start_time_min || thirtyMinutesAgo.toISOString();
+    const startTimeMax = params.start_time_max || now.toISOString();
 
-    // Build traces URL
-    const tracesUrl = `${jaegerUrl}/api/v3/traces?query.service_name=${serviceName}&query.start_time_min=${startTimeMin}&query.start_time_max=${startTimeMax}`;
+    const searchDepth = params.max_traces || 20;
+
+    const queryParams = new URLSearchParams({
+      "query.start_time_min": startTimeMin,
+      "query.start_time_max": startTimeMax,
+      "query.search_depth": searchDepth.toString(),
+    });
+
+    if (params.service_name) {
+      queryParams.append("query.service_name", params.service_name);
+    }
+    if (params.operation_name) {
+      queryParams.append("query.operation_name", params.operation_name);
+    }
+
+    // Build traces URL with query params
+    const tracesUrl = `${jaegerUrl}/api/v3/traces?${queryParams.toString()}`;
 
     console.log(`Fetching sample trace from: ${tracesUrl}`);
 
