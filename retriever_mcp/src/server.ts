@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { listServicesTool, getTraceSampleTool } from "./tools/index";
+import { listServicesTool, findTraceTool } from "./tools/index";
 
 // initialize the server
 const server = new McpServer({
@@ -18,18 +18,18 @@ server.registerTool(
     inputSchema: listServicesTool.inputSchema,
     outputSchema: listServicesTool.outputSchema,
   },
-  listServicesTool.handler // handler is in place of tool functionality before. This handler is a property where the respective tool function lives 
+  listServicesTool.handler, // handler is in place of tool functionality before. This handler is a property where the respective tool function lives
 );
 
 server.registerTool(
-  getTraceSampleTool.name,
+  findTraceTool.name,
   {
     title: "Get Sample Trace",
-    description: getTraceSampleTool.description,
-    inputSchema: getTraceSampleTool.inputSchema,
-    outputSchema: getTraceSampleTool.outputSchema,
+    description: findTraceTool.description,
+    inputSchema: findTraceTool.inputSchema,
+    outputSchema: findTraceTool.outputSchema,
   },
-  getTraceSampleTool.handler
+  findTraceTool.handler,
 );
 
 // HTTP transport

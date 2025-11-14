@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
 
-export const getTraceSampleTool = {
+export const findTraceTool = {
   name: "find_traces",
   description: "given parameters, return traces with specified structure",
   inputSchema: {
