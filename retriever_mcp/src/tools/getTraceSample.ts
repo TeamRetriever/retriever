@@ -26,21 +26,8 @@ export const getTraceSampleTool = {
 
     
 
-    // If no service specified, get the first available service
-    let serviceName = params.service;
-    if (!serviceName) {
-      console.log("No service specified, fetching first available service...");
-      const servicesUrl = `${jaegerUrl}/api/v3/services`;
-      const servicesResponse = await fetch(servicesUrl);
-      const servicesData: { services: string[] } = await servicesResponse.json();
-      serviceName = servicesData.services[0];
-      console.log(`Using service: ${serviceName}`);
-    }
-    // Use lookback parameter (default to 1 hour)
-    const lookback = params.lookback || "1h";
-
-    // Build traces URL using the legacy API that works
-    const tracesUrl = `${jaegerUrl}/api/traces?service=${serviceName}&lookback=${lookback}&limit=1`;
+    // Build traces URL
+    const tracesUrl = `${jaegerUrl}/api/v3/traces?query.service_name=${serviceName}&query.start_time_min=${startTimeMin}&query.start_time_max=${startTimeMax}`;
 
     console.log(`Fetching sample trace from: ${tracesUrl}`);
 
