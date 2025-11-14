@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { listServicesTool, getTraceSampleTool, getErrorsTool } from "./tools/index";
+import { listServicesTool, getTraceSampleTool, getTracesTool } from "./tools/index";
 
 // initialize the server
 const server = new McpServer({
@@ -33,14 +33,14 @@ server.registerTool(
 );
 
 server.registerTool(
-  getErrorsTool.name, 
+  getTracesTool.name, 
 {
-  title: "Query Error Traces",
-  description: getErrorsTool.description, 
-  inputSchema: getErrorsTool.inputSchema, 
-  outputSchema: getErrorsTool.outputSchema
+  title: "Get Trace Data",
+  description: getTracesTool.description, 
+  inputSchema: getTracesTool.inputSchema, 
+  outputSchema: getTracesTool.outputSchema
 }, 
-getErrorsTool.handler
+getTracesTool.handler
 )
 
 // HTTP transport
