@@ -1,6 +1,6 @@
 import z from "zod";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
-import { parseLookback, searchAllServices, extractTraceSummary, isErrorSpan, isSuccessfulSpan } from "../utils/toolHelpers"
+import { parseLookback, getAllServicesTraceSummary, extractTraceSummary, getFilterFunction } from "../utils/toolHelpers"
 import { JaegerOTLPResponse, OTLPSpan } from "../types/types";
 
 export const getTracesTool = {
@@ -36,7 +36,7 @@ export const getTracesTool = {
 
         // Search all services with the specified filter
         if (params.service === "all") {
-            return await searchAllServices(
+            return await getAllServicesTraceSummary(
                 jaegerUrl, 
                 startTime, 
                 endTime, 
@@ -76,20 +76,7 @@ export const getTracesTool = {
         const data: JaegerOTLPResponse = await response.json(); 
         
         // Apply client-side filter based on the filter parameter
-        let filterFn: ((span: OTLPSpan) => boolean) | undefined;
-        
-        switch (params.filter) {
-            case 'errors':
-                filterFn = isErrorSpan
-                break;
-            case 'successful':
-                filterFn = isSuccessfulSpan;
-                break;
-            case 'all':
-            default:
-                filterFn = undefined; // No filter - include all spans
-                break;
-        }
+       const filterFn = getFilterFunction(params.filter || 'all')
         
         // Extract trace summaries - data is significantly reduced to key information
         // Uses refactored helper functions to build compact trace summaries

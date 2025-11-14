@@ -28,10 +28,7 @@ function parseLookback(lookback: string): number {
 
 // Filter for error spans only
 function isErrorSpan(span: OTLPSpan): boolean {
-    const hasErrorStatus = span.status?.code === 2; // OTLP status code 2 = ERROR
-    const errorAttr = span.attributes ? findAttribute(span.attributes, 'error') : undefined;
-    const hasErrorAttribute = errorAttr?.value?.boolValue === true; // Some libs use error: true attribute
-    return hasErrorStatus || hasErrorAttribute;
+   return span.status?.code === 2; 
 }
 
 // Filter for successful spans only
@@ -55,7 +52,7 @@ function isSuccessfulSpan(span: OTLPSpan): boolean {
 
 
 // Search all services with optional filtering
-async function searchAllServices(
+async function getAllServicesTraceSummary(
     jaegerUrl: string,
     startTime: Date,
     endTime: Date,
@@ -326,4 +323,4 @@ function extractTraceSummary(
     };
 }
 
-export {parseLookback, searchAllServices, extractTraceSummary, isErrorSpan, isSuccessfulSpan}
+export {parseLookback, getAllServicesTraceSummary, extractTraceSummary, getFilterFunction}
