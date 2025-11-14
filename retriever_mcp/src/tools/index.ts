@@ -1,2 +1,3 @@
 export { listServicesTool } from "./listServices.js";
-export { findTraceTool } from "./getTraceSample.js";
+export { getErrorsTool } from "./getErrors.js";
+export { findTraceTool } from "./findTraces.js";

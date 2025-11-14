@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { listServicesTool, findTraceTool } from "./tools/index";
+import { listServicesTool, findTraceTool, getErrorsTool } from "./tools";
 
 // initialize the server
 const server = new McpServer({
@@ -31,6 +31,17 @@ server.registerTool(
   },
   findTraceTool.handler,
 );
+
+server.registerTool(
+  getErrorsTool.name,
+{
+  title: "Get Specifified Trace Errors",
+  description: getErrorsTool.description,
+  inputSchema: getErrorsTool.inputSchema,
+  outputSchema: getErrorsTool.outputSchema
+},
+getErrorsTool.handler
+)
 
 // HTTP transport
 const app = express();
