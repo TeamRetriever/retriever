@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
+import { parseLookback } from "../utils/toolHelpers";
 
 export const findTraceTool = {
-  name: "find_traces",
+  name: "find_trace",
   description: "given parameters, return traces with specified structure",
   inputSchema: {
     service_name: z
@@ -15,23 +16,16 @@ export const findTraceTool = {
       .describe(
         "operation_name filters spans by a specific operation / span name.",
       ),
-    start_time_min: z
+    lookback: z
       .string()
       .optional()
-      .describe(
-        "start_time_min is the start of the time interval (inclusive) for the query. RFC-3339ns format (e.g., '2025-11-13T10:30:00Z'). If user says '30 minutes ago', convert to absolute timestamp. This field is required.",
-      ),
-    start_time_max: z
-      .string()
-      .optional()
-      .describe(
-        "start_time_max is the end of the time interval (exclusive) for the query. RFC-3339ns format (e.g., '2025-11-13T10:30:00Z'). If user says '30 minutes ago', this time is now. This field is required.",
-      ),
-    max_traces: z // differs from API "search_depth" for clarity
+      .default("1h")
+      .describe('Time range such as "1h", "30m", "2d"'),
+    max_traces: z // differs from API "search_depth" for clarity. Defaults to 1, but can return up to 5.
       .number()
       .int()
       .min(1)
-      .max(200) // Maybe increase, 1000 or so, later?
+      .max(5)
       .optional()
       .describe(
         "Maximum number of traces to return (approximate). Defaults to 20. Higher values may result in slower responses and more data to analyze.",
@@ -41,27 +35,27 @@ export const findTraceTool = {
   handler: async (params: {
     service_name?: string;
     operation_name?: string;
-    start_time_min?: string;
-    start_time_max?: string;
+    lookback?: string;
     max_traces?: number;
   }) => {
     const jaegerUrl = process.env.URL;
+
     if (!jaegerUrl) {
       throw new Error("No URL environmental variable defined!");
     }
 
-    // Handle default values for params
-    const now = new Date();
-    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-    const startTimeMin =
-      params.start_time_min || thirtyMinutesAgo.toISOString();
-    const startTimeMax = params.start_time_max || now.toISOString();
+    // calculate time ranges
+    const endTime = new Date();
+    // getTime will convert Date to ms
+    const startTime = new Date(
+      endTime.getTime() - parseLookback(params.lookback || "1h"),
+    );
 
-    const searchDepth = params.max_traces || 20;
+    const searchDepth = params.max_traces || 1;
 
     const queryParams = new URLSearchParams({
-      "query.start_time_min": startTimeMin,
-      "query.start_time_max": startTimeMax,
+      "query.start_time_min": startTime.toISOString(), // Jaeger expects ISO 8601 format so this will convert to that
+      "query.start_time_max": endTime.toISOString(), // e.g. 2025-01-15T10:00:00.000Z"
       "query.search_depth": searchDepth.toString(),
     });
 
