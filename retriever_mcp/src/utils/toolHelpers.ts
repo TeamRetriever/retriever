@@ -1,5 +1,5 @@
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
-import type { ServiceErrorResult, JaegerOTLPResponse, OTLPAttribute,  ExtractedErrors, ErrorSummary, AllServicesResult, JaegerServicesResponse  } from "../types/types";
+import type { ServiceTraceResult, JaegerOTLPResponse, OTLPAttribute,  ExtractedTraces, TraceSummary, AllServicesResult, JaegerServicesResponse, OTLPSpan, OTLPResourceSpan  } from "../types/types";
 
 
 // get_errors tool helpers // 
@@ -24,17 +24,45 @@ function parseLookback(lookback: string): number {
     return value * multipliers[unit];
   }
 
+  // FILTER FUNCTIONS: Reusable predicates for different trace types
+
+// Filter for error spans only
+function isErrorSpan(span: OTLPSpan): boolean {
+   return span.status?.code === 2; 
+}
+
+// Filter for successful spans only
+function isSuccessfulSpan(span: OTLPSpan): boolean {
+    return !isErrorSpan(span);
+}
+
+  
+
+  function getFilterFunction(filter: 'all' | 'errors' | 'successful'): ((span: OTLPSpan) => boolean) | undefined {
+    switch (filter) {
+        case 'errors':
+            return isErrorSpan;
+        case 'successful':
+            return isSuccessfulSpan;
+        case 'all':
+        default:
+            return undefined; // No filter - include all spans
+    }
+}
 
 
-  async function searchAllServices(
+// Search all services with optional filtering
+async function getAllServicesTraceSummary(
     jaegerUrl: string,
     startTime: Date,
     endTime: Date,
-    limit: number
+    limit: number,
+    filter: 'all' | 'errors' | 'successful' = 'all'
 ): Promise<{
     content: TextContent[];
     structuredContent: { result: AllServicesResult };
 }> {
+    // Fetch list of all services from Jaeger
     const servicesResponse = await fetch(`${jaegerUrl}/api/v3/services`);
     
     if (!servicesResponse.ok) {
@@ -44,52 +72,64 @@ function parseLookback(lookback: string): number {
     const servicesData: JaegerServicesResponse = await servicesResponse.json();
     const services = servicesData.services || [];
 
-    const allErrors: ServiceErrorResult[] = [];
+    const allTraces: ServiceTraceResult[] = [];
 
+    
     for (const service of services) {
         try {
+           
             const queryParams = new URLSearchParams({
                 "query.service_name": service,
                 "query.start_time_min": startTime.toISOString(),
                 "query.start_time_max": endTime.toISOString(),
-                "query.attributes.error": "true",
                 "query.search_depth": limit.toString(),
             });
 
+            // Add server-side error filter if specifically requesting errors
+            // This reduces data transfer by having Jaeger filter at the source
+            if (filter === 'errors') {
+                queryParams.append("query.attributes.error", "true");
+            }
+
+            // Fetch traces for this service
             const response = await fetch(`${jaegerUrl}/api/v3/traces?${queryParams}`);
-            if (!response.ok) continue;
+            if (!response.ok) continue; // Skip services that error out
 
             const data: JaegerOTLPResponse = await response.json();
             
-            // Check if the API response contains any trace data before processing
-            // First check: data.result?.resourceSpans?.length - safely verify the array exists
-            // Second check: data.result.resourceSpans.length > 0 - confirm it's not empty
+            // Process traces if we got any data back
             if (data.result?.resourceSpans?.length && data.result.resourceSpans.length > 0) {
-                const summary = extractErrorSummary(data, limit);
+                // Determine which filter function to apply based on filter parameter
+                const filterFn = getFilterFunction(filter);
                 
-                // Only add to results if we actually found errors
-                if (summary.errorsFound > 0) {
-                    allErrors.push({
+                // Extract trace summaries using our refactored function
+                const summary = extractTraceSummary(data, limit, filterFn);
+                
+                // Only add to results if we actually found matching traces
+                if (summary.tracesFound > 0) {
+                    allTraces.push({
                         service,
-                        error_count: summary.errorsFound,
-                        errors: summary.errors,  // Now typed ErrorSummary[] instead of raw data
+                        trace_count: summary.tracesFound,
+                        traces: summary.traces,
                     });
                 }
             }
         } catch (error) {
+            // Log error but continue processing other services
             console.error(`Error querying ${service}:`, error);
-            // Continue to next service rather than failing completely
         }
     }
 
+    // Build final result with summary statistics
     const result: AllServicesResult = {
         summary: { 
-            total: services.length, 
-            with_errors: allErrors.length 
+            total: services.length,           // Total services checked
+            with_traces: allTraces.length     // Services that had matching traces
         },
-        errors_by_service: allErrors
+        traces_by_service: allTraces
     };
 
+    // Format for MCP response
     const textContent: TextContent = {
         type: "text",
         text: JSON.stringify(result, null, 2)
@@ -100,6 +140,9 @@ function parseLookback(lookback: string): number {
         structuredContent: { result }
     };
 }
+
+
+
 // Extracts the actual value from an OTLP attribute's variant type
 // Since Jaeger key values will always only have 1 property populated, this function returns the one true value
 // Returns undefined if no value is present
@@ -118,107 +161,166 @@ function findAttribute(attributes: OTLPAttribute[] | undefined, key: string): OT
     return attributes?.find(attr => attr.key === key);
 }
 
-// Main function: extracts compact error summaries from raw Jaeger trace data
-// Converts massive nested trace structures into lightweight error reports
-// Params:
-//   - data: Full OTLP response from Jaeger API containing all trace spans
-//   - limit: Maximum number of error summaries to extract (stops early to control size)
-// Returns: Object with metadata (traces searched, errors found) and array of error summaries
- function extractErrorSummary(data: JaegerOTLPResponse, limit: number): ExtractedErrors {
-    // Direct access to resourceSpans array (required field in OTLP)
-    const traces = data.result.resourceSpans; 
 
-    // Accumulator array for error summaries we extract
-    const errorSummaries: ErrorSummary[] = [];
-    
-    // Counter to enforce the limit and enable early termination
-    let count = 0;
-    
-    // LAYER 1: Loop through ResourceSpans (one per service/host)
-    for (const resourceSpan of traces) {
-        if (count >= limit) break; 
-        
-        // Extract service name from resource attributes (e.g., "frontend", "payment-service")
-        const serviceAttr = findAttribute(resourceSpan.resource.attributes, 'service.name');
-        const serviceName = serviceAttr?.value?.stringValue || 'unknown';
-        
-        // LAYER 2: Loop through ScopeSpans (instrumentation library groupings)
-        // This layer exists for OTLP structure but isn't particularly useful for analysis
-        for (const scopeSpan of resourceSpan.scopeSpans) {
-            if (count >= limit) break;
-            
-            // LAYER 3: Loop through Spans (actual operations - this is where errors live)
-            for (const span of scopeSpan.spans) {
-                if (count >= limit) break;
-                
-                // ERROR DETECTION: Check two ways a span can indicate an error
-                const hasErrorStatus = span.status?.code === 2; // OTLP status code 2 = ERROR
-                const errorAttr = span.attributes ? findAttribute(span.attributes, 'error') : undefined;
-                const hasErrorAttribute = errorAttr?.value?.boolValue === true; // Some libs use error: true attribute
-                
-                // Process this span only if it's marked as an error
-                if (hasErrorStatus || hasErrorAttribute) {
-                    // DURATION CALCULATION: Convert nanoseconds to milliseconds for readability
-                    // Formula: (endTime - startTime) / 1,000,000 = milliseconds
-                    const duration = span.endTimeUnixNano 
-                        ? `${(Number(span.endTimeUnixNano) - Number(span.startTimeUnixNano)) / 1000000}ms`
-                        : 'unknown'; // Some spans may not have endTime if they crashed
-                    
-                    // TAG EXTRACTION: Build object with only error-related and HTTP-related tags
-                    // This filters out irrelevant tags (thread.id, peer.service, etc.) to reduce size
-                    const tags: Record<string, string | number | boolean> = {};
-                    span.attributes?.forEach(attr => {
-                        // Only keep tags starting with "error." or "http."
-                        if (attr.key.startsWith('error.') || attr.key.startsWith('http.')) {
-                            const value = getAttributeValue(attr);
-                            if (value !== undefined) {
-                                tags[attr.key] = value; // e.g., { "error.type": "SQLException", "http.status_code": 500 }
-                            }
-                        }
-                    });
-                    
-                    // SPECIFIC ATTRIBUTE EXTRACTION: Pull out commonly-needed fields for top-level access
-                    // These also exist in tags, but having them at the top level makes them easier to access
-                    const errorTypeAttr = span.attributes ? findAttribute(span.attributes, 'error.type') : undefined;
-                    const httpStatusAttr = span.attributes ? findAttribute(span.attributes, 'http.status_code') : undefined;
-                    
-                    // BUILD ERROR SUMMARY: Construct compact representation with only essential debugging info
-                    const errorInfo: ErrorSummary = {
-                        traceId: span.traceId,              // Links to full distributed trace
-                        spanId: span.spanId,                // Unique ID for this specific operation
-                        service: serviceName,               // Which service errored
-                        operation: span.name,               // What it was doing when it failed
-                        startTime: span.startTimeUnixNano,  // When the error occurred
-                        duration,                           // How long before failure
-                        errorMessage: span.status?.message || 'No error message', // Human-readable error
-                        errorType: errorTypeAttr?.value?.stringValue,    // Error classification (optional)
-                        httpStatusCode: httpStatusAttr?.value?.intValue, // HTTP status (optional)
-                        tags,                               // Filtered error/HTTP tags
 
-                        // LOG EXTRACTION: Include up to 3 most recent log entries with up to 5 attributes each
-                        // This provides exception stack traces and error context without overwhelming the payload
-                        logs: span.events?.slice(0, 3).map(event => ({
-                            timestamp: event.timeUnixNano,
-                            name: event.name,
-                            attributes: event.attributes?.slice(0, 5) // Limit prevents huge log dumps
-                        }))
-                    };
-                    
-                    // Add this error to our collection and increment counter
-                    errorSummaries.push(errorInfo);
-                    count++;
-                }
+
+// Calculates span duration in milliseconds from nanosecond timestamps
+function calculateDuration(span: OTLPSpan): string {
+    if (!span.endTimeUnixNano) {
+        return 'unknown'; // Span didn't finish (crashed or still running)
+    }
+    const durationMs = (Number(span.endTimeUnixNano) - Number(span.startTimeUnixNano)) / 1000000;
+    return `${durationMs}ms`;
+}
+
+// Determines the status of a span (ok, error, or unset)
+function getSpanStatus(span: OTLPSpan): 'ok' | 'error' | 'unset' {
+    if (span.status?.code === 1) return 'ok';
+    if (span.status?.code === 2) return 'error';
+    return 'unset';
+}
+
+// Extracts relevant tags from span attributes
+// Filters to keep only error.*, http.*, db.*, rpc.*, messaging.* tags
+function extractRelevantTags(span: OTLPSpan): Record<string, string | number | boolean> {
+    const tags: Record<string, string | number | boolean> = {};
+    
+    if (!span.attributes) {
+        return tags;
+    }
+    
+    for (const attr of span.attributes) {
+        // Only keep tags that are useful for debugging and analysis
+        const isRelevant = attr.key.startsWith('error.') || 
+                          attr.key.startsWith('http.') ||
+                          attr.key.startsWith('db.') ||
+                          attr.key.startsWith('rpc.') ||
+                          attr.key.startsWith('messaging.');
+        
+        if (isRelevant) {
+            const value = getAttributeValue(attr);
+            if (value !== undefined) {
+                tags[attr.key] = value;
             }
         }
     }
     
-    // Return summary with metadata about the search and all extracted errors
+    return tags;
+}
+
+// Extracts log entries/events from a span
+// Limits to first 3 events with max 5 attributes each to prevent huge payloads
+function extractSpanLogs(span: OTLPSpan): TraceSummary['logs'] {
+    if (!span.events || span.events.length === 0) {
+        return undefined;
+    }
+    
+    return span.events.slice(0, 3).map(event => ({
+        timestamp: event.timeUnixNano,
+        name: event.name,
+        attributes: event.attributes?.slice(0, 5)
+    }));
+}
+
+// Builds a complete TraceSummary object from a span
+function buildTraceSummary(span: OTLPSpan, serviceName: string): TraceSummary {
+    const status = getSpanStatus(span);
+    const duration = calculateDuration(span);
+    const tags = extractRelevantTags(span);
+    
+    // Extract commonly-needed attributes for top-level access
+    const errorTypeAttr = span.attributes ? findAttribute(span.attributes, 'error.type') : undefined;
+    const httpStatusAttr = span.attributes ? findAttribute(span.attributes, 'http.status_code') : undefined;
+    
     return {
-        totalTracesSearched: traces.length,    // How many traces we examined
-        errorsFound: errorSummaries.length,    // How many contained errors
-        errors: errorSummaries                 // The actual error details
+        traceId: span.traceId,
+        spanId: span.spanId,
+        service: serviceName,
+        operation: span.name,
+        startTime: span.startTimeUnixNano,
+        duration,
+        status,
+        errorMessage: status === 'error' ? (span.status?.message || 'No error message') : undefined,
+        errorType: errorTypeAttr?.value?.stringValue,
+        httpStatusCode: httpStatusAttr?.value?.intValue,
+        tags,
+        logs: extractSpanLogs(span)
     };
 }
 
+// Processes a single ResourceSpan and extracts matching traces
+function processResourceSpan(
+    resourceSpan: OTLPResourceSpan,
+    limit: number,
+    currentCount: number,
+    filterFn?: (span: OTLPSpan) => boolean
+): { summaries: TraceSummary[]; newCount: number } {
+    const summaries: TraceSummary[] = [];
+    let count = currentCount;
+    
+    // Extract service name from resource attributes
+    const serviceAttr = findAttribute(resourceSpan.resource.attributes, 'service.name');
+    const serviceName = serviceAttr?.value?.stringValue || 'unknown';
+    
+    // Loop through scope spans (instrumentation library groupings)
+    for (const scopeSpan of resourceSpan.scopeSpans) {
+        if (count >= limit) break;
+        
+        // Loop through actual spans (operations)
+        for (const span of scopeSpan.spans) {
+            if (count >= limit) break;
+            
+            // Apply filter if provided
+            if (filterFn && !filterFn(span)) {
+                continue; // Skip spans that don't match filter
+            }
+            
+            // Build the trace summary
+            const traceSummary = buildTraceSummary(span, serviceName);
+            summaries.push(traceSummary);
+            count++;
+        }
+    }
+    
+    return { summaries, newCount: count };
+}
 
-export {parseLookback, searchAllServices, extractErrorSummary}
+// Main extraction function - now much simpler!
+// Converts massive nested trace structures into lightweight reports
+// Params:
+//   - data: Full OTLP response from Jaeger API containing all trace spans
+//   - limit: Maximum number of trace summaries to extract (stops early to control size)
+//   - filterFn: Optional filter function to select specific spans (errors, successful, etc.)
+// Returns: Object with metadata (traces searched, traces found) and array of trace summaries
+function extractTraceSummary(
+    data: JaegerOTLPResponse, 
+    limit: number,
+    filterFn?: (span: OTLPSpan) => boolean
+): ExtractedTraces {
+    const resourceSpans = data.result.resourceSpans;
+    const allSummaries: TraceSummary[] = [];
+    let count = 0;
+    
+    // Process each resource span (one per service/host)
+    for (const resourceSpan of resourceSpans) {
+        if (count >= limit) break;
+        
+        const { summaries, newCount } = processResourceSpan(
+            resourceSpan, 
+            limit, 
+            count, 
+            filterFn
+        );
+        
+        allSummaries.push(...summaries);
+        count = newCount;
+    }
+    
+    return {
+        totalTracesSearched: resourceSpans.length,
+        tracesFound: allSummaries.length,
+        traces: allSummaries
+    };
+}
+
+export {parseLookback, getAllServicesTraceSummary, extractTraceSummary, getFilterFunction}
