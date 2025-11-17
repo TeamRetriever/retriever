@@ -59,30 +59,31 @@ export interface JaegerOTLPResponse {
 
 
 
-// Condensed representation of a single error span with only essential debugging info
-export interface ErrorSummary {
+// General trace summary (works for both errors and successful traces)
+export interface TraceSummary {
     traceId: string;          // Links to full distributed trace
-    spanId: string;           // Unique ID for this errored operation
-    service: string;          // Which service had the error (e.g., "frontend", "payment-service")
-    operation: string;        // What it was doing (e.g., "POST /checkout", "query-user-balance")
-    startTime: string;        // When the error occurred (nanosecond timestamp)
-    duration: string;         // How long before it failed (e.g., "250ms", "5s")
-    errorMessage: string;     // Human-readable error description
+    spanId: string;           // Unique ID for this specific operation
+    service: string;          // Which service the span belongs to (e.g., "frontend", "payment-service")
+    operation: string;        // What operation was performed (e.g., "POST /checkout", "query-user-balance")
+    startTime: string;        // When the operation started (nanosecond timestamp)
+    duration: string;         // How long it took (e.g., "250ms", "5s")
+    status: 'ok' | 'error' | 'unset';  // ✅ ADD THIS - indicates success/failure
+    errorMessage?: string;    // ✅ ADD ? - Human-readable error description (only for errors)
     errorType?: string;       // Error classification (e.g., "SQLException", "TimeoutException")
-    httpStatusCode?: number;  // HTTP status if applicable (e.g., 500, 404)
-    tags: Record<string, string | number | boolean>; // All error.* and http.* attributes
-    logs?: Array<{            // Up to 3 log entries with details about the error
+    httpStatusCode?: number;  // HTTP status if applicable (e.g., 500, 404, 200)
+    tags: Record<string, string | number | boolean>; // Relevant attributes (error.*, http.*, db.*, etc.)
+    logs?: Array<{            // Up to 3 log entries with details
         timestamp: string;    // When the log occurred
         name: string;         // Log type (e.g., "exception", "error")
         attributes?: OTLPAttribute[]; // Up to 5 attributes per log entry
     }>;
 }
 
-// Result of processing traces to extract error information
-export interface ExtractedErrors {
-    totalTracesSearched: number; // How many traces we examined
-    errorsFound: number;         // How many had errors
-    errors: ErrorSummary[];      // Array of compact error summaries
+// Result of extracting traces
+export interface ExtractedTraces {
+    totalTracesSearched: number;  // How many resource spans examined
+    tracesFound: number;          // How many spans matched criteria
+    traces: TraceSummary[];       // The actual trace summaries
 }
 
 // Response from Jaeger's /api/v3/services endpoint
@@ -90,18 +91,18 @@ export interface JaegerServicesResponse {
     services?: string[]; // List of service names (e.g., ["frontend", "backend", "database"])
 }
 
-// Error summary for a single service when searching across all services
-export interface ServiceErrorResult {
-    service: string;     // Service name (e.g., "frontend")
-    error_count: number; // Number of errors found in this service
-    errors: ErrorSummary[]; // Array of error summaries from this service
+// Trace summary for a single service when searching across all services
+export interface ServiceTraceResult {
+    service: string;              // Service name
+    trace_count: number;          // Number of traces found
+    traces: TraceSummary[];       // Trace summaries from this service
 }
 
 // Result of searching for errors across multiple services
 export interface AllServicesResult {
     summary: {
         total: number;        // Total number of services searched
-        with_errors: number;  // How many services had errors
+        with_traces: number;  // How many services had errors
     };
-    errors_by_service: ServiceErrorResult[]; // Error details grouped by service
+    traces_by_service: ServiceTraceResult[]; // Error details grouped by service
 }
