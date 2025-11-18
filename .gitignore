@@ -48,10 +48,29 @@ logs/
 *~
 
 # Terraform local state and providers
-.terraform/
+**/.terraform/*
+*.auto.tfvars
+*.tfvars
+*.tfvars.json
 *.tfstate
+*.tfstate.*
 *.tfstate.backup
 crash.log
 
-# sanple trace data 
+# Terraform override files
+*.tfoverride
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore environment-specific files
+.envrc
+
+# sample trace data 
 sample_trace.json 
+
+# Ignore sensitive files
+*.pem
+*.key
+*.pub
