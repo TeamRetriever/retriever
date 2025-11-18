@@ -1,0 +1,234 @@
+{
+  "$schema": "https://flagd.dev/schema/v0/flags.json",
+  "flags": {
+    "cart-service-failure": {
+      "description": "Simulates cart service being down - returns 503 errors",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "payment-processing-error": {
+      "description": "Causes payment processing to fail",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "slow-product-api": {
+      "description": "Adds 3-5 second delays to product service responses",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "slow-recommendation-api": {
+      "description": "Adds 5-10 second delays to recommendation service",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "enable-discounts": {
+      "description": "Enables discount calculations in cart",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "show-recommendations": {
+      "description": "Shows product recommendations on product pages",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "product-display-mode": {
+      "description": "Controls product listing display mode",
+      "state": "ENABLED",
+      "variants": {
+        "grid": "grid",
+        "list": "list"
+      },
+      "defaultVariant": "grid"
+    },
+    "checkout-flow-variant": {
+      "description": "Different checkout flow variants",
+      "state": "ENABLED",
+      "variants": {
+        "single-page": "single-page",
+        "multi-step": "multi-step"
+      },
+      "defaultVariant": "multi-step"
+    },
+    "order-service-timeout": {
+      "description": "Simulates order service timeouts",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "database-connection-error": {
+      "description": "Simulates database connection failures",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "intermittent-cart-failure": {
+      "description": "Random 50% failure rate on cart operations - great for testing retry logic",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "invalid-product-data": {
+      "description": "Returns corrupted/malformed product data to test error handling",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "rate-limit-products": {
+      "description": "Enforces rate limiting on product API (max 5 requests per minute)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "memory-leak-simulation": {
+      "description": "Simulates memory pressure and resource exhaustion",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "stale-cache-data": {
+      "description": "Returns outdated cached product data (prices 20% higher)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "partial-order-response": {
+      "description": "Returns incomplete order data (missing fields)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "cart-data-corruption": {
+      "description": "Corrupts cart item quantities and totals",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "recommendation-cascade-failure": {
+      "description": "Recommendation failures trigger product service errors (cascading failure)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "api-gateway-timeout": {
+      "description": "API Gateway times out before backend services respond",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "duplicate-order-processing": {
+      "description": "Simulates duplicate order creation (idempotency test)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "inventory-service-503": {
+      "description": "Simulates inventory check service being unavailable",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "payment-retry-exhaustion": {
+      "description": "Payment fails even after retries (tests retry limits)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "trace-context-corruption": {
+      "description": "Simulates broken trace propagation (breaks distributed tracing)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "response-size-bloat": {
+      "description": "Returns unnecessarily large payloads (10x normal size)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "error-rate-percentage": {
+      "description": "Configurable error rate for chaos testing",
+      "state": "ENABLED",
+      "variants": {
+        "0": 0,
+        "10": 10,
+        "25": 25,
+        "50": 50,
+        "75": 75,
+        "100": 100
+      },
+      "defaultVariant": "0"
+    }
+  }
+}

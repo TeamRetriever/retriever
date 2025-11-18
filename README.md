@@ -1,4 +1,4 @@
-# 🔍 Retriever - Distributed Observability Stack
+ 🔍 Retriever - Distributed Observability Stack
 
 > A self-hosted observability platform with distributed tracing, metrics, and alerting
 
@@ -18,6 +18,8 @@
 - [Testing](#-testing)
 - [Troubleshooting](#-troubleshooting)
 - [Monitoring & Alerts](#-monitoring--alerts)
+- [Customization](#-customization)
+- [Cleanup](#-cleanup)
 
 ---
 
@@ -36,34 +38,34 @@ Retriever integrates **Prometheus monitoring** and **AlertManager alerting** int
 ## 🏗️ Architecture
 
 ```
-┌─────────────┐
-│   HotROD    │ Demo Application
-│  (Traces)   │
-└──────┬──────┘
-       │ OTLP
-       ▼
+┌─────────────────────┐
+│ Basketball Shoes    │  E-commerce Application
+│ App (7 services)    │  (Product, Cart, Order, etc.)
+└──────────┬──────────┘
+           │ OTLP
+           ▼
 ┌─────────────────────────────────────┐
-│      Jaeger Collector               │
+│         Jaeger Collector            │
 │  ┌──────────────┬──────────────┐   │
 │  │   Storage    │  Spanmetrics │   │
 │  └──────┬───────┴──────┬───────┘   │
 └─────────┼──────────────┼───────────┘
           │              │
           ▼              ▼
-   ┌─────────────┐  ┌──────────────┐
-   │  Opensearch │  │  Prometheus  │
-   └──────┬──────┘  └──────┬───────┘
-          │                │
-          ▼                ▼
-   ┌─────────────┐  ┌──────────────┐
-   │   Query     │  │ AlertManager │
-   │  (UI/API)   │  │              │
-   └──────┬──────┘  └──────┬───────┘
-          │                │
-          ▼                ▼
-   ┌─────────────┐  ┌──────────────┐
-   │ MCP Server  │  │    Slack     │
-   └─────────────┘  └──────────────┘
+┌─────────────┐  ┌──────────────┐
+│ Opensearch  │  │  Prometheus  │
+└──────┬──────┘  └──────┬───────┘
+       │                │
+       ▼                ▼
+┌─────────────┐  ┌──────────────┐
+│   Query     │  │ AlertManager │
+│  (UI/API)   │  │              │
+└──────┬──────┘  └──────┬───────┘
+       │                │
+       ▼                ▼
+┌─────────────┐  ┌──────────────┐
+│ MCP Server  │  │    Slack     │
+└─────────────┘  └──────────────┘
 ```
 
 ### 🔑 Key Components
@@ -75,11 +77,10 @@ Retriever integrates **Prometheus monitoring** and **AlertManager alerting** int
 | **Opensearch** | Persistent trace storage | 9200 |
 | **Prometheus** | Metrics aggregation and alerting | 9090 |
 | **AlertManager** | Alert routing and notifications | 9093 |
-| **HotROD** | Demo application for testing | 8080, 8083 |
+| **Basketball Shoes App** | E-commerce microservices | 80, 3010 |
 | **MCP Server** | AI integration API | 3000 |
 
 ---
-
 
 ## 🚀 Quick Start
 
@@ -94,6 +95,7 @@ cd docker_testing
 ### 2️⃣ Choose Your Setup
 
 #### Option A: Basic Setup (No Alerts)
+
 ```bash
 # Start services without AlertManager
 docker compose up -d
@@ -106,6 +108,7 @@ docker compose down
 ```
 
 #### Option B: With Slack Alerts
+
 ```bash
 # 1. Configure Slack integration
 echo "https://hooks.slack.com/services/YOUR/WEBHOOK/URL" > slack_webhook.txt
@@ -121,13 +124,10 @@ docker compose ps
 docker compose --profile alerts down
 ```
 
-
 **To get your Slack webhook:**
 1. Go to https://api.slack.com/messaging/webhooks
 2. Create an incoming webhook for your workspace
 3. Copy the webhook URL
-
-
 
 All services should show as `Up` or `healthy`.
 
@@ -136,16 +136,19 @@ All services should show as `Up` or `healthy`.
 ## 🌐 Services
 
 ### 🔍 Jaeger UI
+
 **URL:** http://localhost:16686
 
 View distributed traces, analyze service dependencies, and debug performance issues.
 
 ### 📊 Prometheus
+
 **URL:** http://localhost:9090
 
 Query metrics, visualize data, and view active alerts.
 
 **Useful Queries:**
+
 ```promql
 # Request rate
 rate(calls_total[1m])
@@ -158,16 +161,26 @@ histogram_quantile(0.95, rate(duration_milliseconds_bucket[5m]))
 ```
 
 ### 🚨 AlertManager
+
 **URL:** http://localhost:9093
 
 View active alerts and silences.
 
-### 🚗 HotROD Demo
-**URL:** http://localhost:8080
+### 👟 Basketball Shoes E-commerce App
 
-Generate realistic trace data by clicking buttons to simulate user requests.
+**URL:** http://localhost:80
+
+A full-featured e-commerce application with 7 microservices:
+- Frontend (React)
+- API Gateway
+- Product, Cart, Order, Payment, Recommendation Services
+
+Browse products, add to cart, and complete checkout to generate realistic trace data.
+
+**Feature Flags:** http://localhost:80/flags
 
 ### 🤖 MCP Server
+
 **URL:** http://localhost:3000
 
 API endpoint for AI integration with Claude Desktop.
@@ -202,11 +215,11 @@ Located in `prometheus/alert_rules.yml`:
 
 | Alert | Condition | Threshold | Duration |
 |-------|-----------|-----------|----------|
-| **ServiceError** | Any 5xx errors | > 0 req/sec | 30s |
-| **HighErrorRate** | Error percentage | > 5% | 2m |
-| **HighLatency** | P95 latency | > 100ms | 5m |
-| **CollectorDown** | Collector unreachable | N/A | 1m |
-| **HighRequestRate** | Request rate | > 1000 req/sec | 2m |
+| ServiceError | Any 5xx errors | > 0 req/sec | 30s |
+| HighErrorRate | Error percentage | > 5% | 2m |
+| HighLatency | P95 latency | > 100ms | 5m |
+| CollectorDown | Collector unreachable | N/A | 1m |
+| HighRequestRate | Request rate | > 1000 req/sec | 2m |
 
 ### Slack Integration
 
@@ -228,14 +241,24 @@ receivers:
 
 ### Generate Traffic
 
-1. Open HotROD: http://localhost:8080
-2. Click customer buttons to generate requests
-3. Try different services to create varied traces
+1. Open the Basketball Shoes App: http://localhost:80
+2. Browse products and add items to cart
+3. Complete checkout process
+4. Try different user flows to create varied traces
+
+### Enable Chaos Engineering
+
+1. Go to Feature Flags page: http://localhost:80/flags
+2. Enable flags like:
+   - `slow-product-api` - Adds 3-5s delays
+   - `cart-service-failure` - Simulates 503 errors
+   - `payment-processing-error` - Causes payment failures
+3. Use the app to trigger these scenarios
 
 ### View Traces
 
 1. Open Jaeger: http://localhost:16686
-2. Select a service from the dropdown
+2. Select a service from the dropdown (api-gateway, product-service, etc.)
 3. Click "Find Traces"
 4. Explore trace details and service dependencies
 
@@ -248,12 +271,13 @@ receivers:
 
 ### Trigger Alerts
 
-HotROD has built-in error scenarios:
+Use feature flags to trigger alerts:
 
-1. Generate errors by clicking rapidly
-2. Wait 30 seconds for alert to fire
-3. Check Prometheus: http://localhost:9090/alerts
-4. View alert in Slack (if configured)
+1. Enable `slow-product-api` flag
+2. Browse products to generate slow requests
+3. Wait 5 minutes for HighLatency alert to fire
+4. Check Prometheus: http://localhost:9090/alerts
+5. View alert in Slack (if configured)
 
 ---
 
@@ -284,7 +308,7 @@ curl http://localhost:8889/metrics | grep calls_total
 ### Verify Prometheus Scraping
 
 1. Open http://localhost:9090/targets
-2. Check if `jaeger-collector` target is `UP`
+2. Check if `jaeger-collector` target is UP
 3. Last Scrape should show recent timestamp
 
 ### Verify Opensearch
@@ -303,6 +327,7 @@ curl http://localhost:9200/jaeger-span-*/_count
 ### Common Issues
 
 #### ❌ Collector won't start
+
 ```bash
 # Check config syntax
 docker compose config
@@ -312,6 +337,7 @@ docker compose logs collector --tail=50
 ```
 
 #### ❌ No metrics in Prometheus
+
 ```bash
 # Verify collector is exposing metrics
 curl http://localhost:8889/metrics
@@ -321,6 +347,7 @@ docker compose exec prometheus cat /etc/prometheus/prometheus.yml
 ```
 
 #### ❌ Alerts not firing
+
 ```bash
 # Check alert rules syntax
 docker compose exec prometheus promtool check rules /etc/prometheus/alert_rules.yml
@@ -346,27 +373,29 @@ Jaeger Collector (IS an OTel Collector) → Opensearch + Prometheus
 Jaeger Query (separate service) → UI/API
 ```
 
-**Insight:** Jaeger v2 is built on OpenTelemetry Collector, so it can handle spanmetrics generation directly without needing a separate OTel Collector service.
+> **Insight:** Jaeger v2 is built on OpenTelemetry Collector, so it can handle spanmetrics generation directly without needing a separate OTel Collector service.
 
 ### Data Flow
 
-1. **HotROD** sends OTLP traces → Collector (ports 4317/4318)
-2. **Collector** processes traces:
+1. Basketball Shoes App sends OTLP traces → Collector (ports 4317/4318)
+2. Collector processes traces:
    - Stores in Opensearch
    - Generates metrics via spanmetrics
-3. **Prometheus** scrapes metrics from Collector (port 8889)
-4. **Alert rules** evaluate conditions
-5. **AlertManager** routes to Slack when alerts fire
+3. Prometheus scrapes metrics from Collector (port 8889)
+4. Alert rules evaluate conditions
+5. AlertManager routes to Slack when alerts fire
 
 ### Metrics Explained
 
 #### `calls_total`
+
 Counter of all requests, labeled by:
 - `service_name` - Which microservice
 - `http_method` - GET, POST, etc.
 - `http_status_code` - 200, 404, 500, etc.
 
 #### `duration_milliseconds`
+
 Histogram of request durations:
 - Tracks distribution across buckets
 - Enables percentile calculations (P50, P95, P99)
@@ -416,59 +445,44 @@ connectors:
       - name: db.system         # Add database type
 ```
 
-⚠️ **Warning:** Avoid high-cardinality dimensions like `user_id` or `trace_id` - they'll explode the metrics cardinality!
+> ⚠️ **Warning:** Avoid high-cardinality dimensions like `user_id` or `trace_id` - they'll explode the metrics cardinality!
 
 ---
 
 ## 🧹 Cleanup
 
 ### Stop Services
+
 ```bash
 docker compose down
 ```
 
 ### Remove Volumes (Deletes Data)
+
 ```bash
 docker compose down -v
 ```
 
 ### Remove Everything
+
 ```bash
 docker compose down -v --rmi all
 ```
 
 ---
 
-## 📚 Resources
+## 📝 License
 
-- [Jaeger Documentation](https://www.jaegertracing.io/docs/)
-- [Prometheus Documentation](https://prometheus.io/docs/)
-- [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/)
-- [AlertManager Configuration](https://prometheus.io/docs/alerting/latest/configuration/)
-- [PromQL Basics](https://prometheus.io/docs/prometheus/latest/querying/basics/)
-
----
+This project is open source and available under the [MIT License](LICENSE).
 
 ## 🤝 Contributing
 
-This is a capstone project by:
-- Benji Walker
-- Philip Knapp  
-- Ryan Foley
-- Zane Lee
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](../../issues).
+
+## 📧 Support
+
+For questions or support, please open an issue or contact the maintainers.
 
 ---
 
-## 📝 License
-
-Open source
-
----
-
-<div align="center">
-
-**Built with** ❤️ **for observability**
-
-[⬆ Back to Top](#-retriever---distributed-observability-stack)
-
-</div>
+**Built with ❤️ using Jaeger, Prometheus, and OpenSearch**
