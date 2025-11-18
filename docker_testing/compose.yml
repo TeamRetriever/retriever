@@ -1,21 +1,21 @@
 # Distributed Jaeger architecture with OpenSearch backend + Basketball Shoes E-commerce App
 # This file should replace docker_testing/compose.yml in your main project
- 
+
 networks:
   jaeger-test:
     driver: bridge
- 
+
 secrets:
   slack_webhook:
     file: ./slack_webhook.txt
   slack_channel:
     file: ./slack_channel.txt
- 
+
 services:
   # ============================================================================
   # JAEGER INFRASTRUCTURE
   # ============================================================================
- 
+
   # Jaeger Collector - receives traces from applications
   collector:
     image: jaegertracing/jaeger:2.11.0
@@ -35,7 +35,7 @@ services:
       opensearch:
         condition: service_healthy
     restart: unless-stopped
- 
+
   # Jaeger Query - UI for viewing traces
   query:
     image: jaegertracing/jaeger:2.11.0
@@ -54,7 +54,7 @@ services:
       opensearch:
         condition: service_healthy
     restart: unless-stopped
- 
+
   # OpenSearch - trace storage backend
   opensearch:
     image: opensearchproject/opensearch:2.11.1
@@ -74,7 +74,7 @@ services:
       retries: 12
       start_period: 60s
     restart: unless-stopped
- 
+
   # Prometheus - metrics collection
   prometheus:
     image: prom/prometheus:latest
@@ -93,7 +93,7 @@ services:
     depends_on:
       - collector
     restart: unless-stopped
- 
+
   # AlertManager - handles alerts from Prometheus
   alertmanager:
     image: prom/alertmanager:latest
@@ -113,7 +113,7 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # MCP Service
   mcp:
     build: ../retriever_mcp
@@ -121,17 +121,17 @@ services:
     environment:
       - URL=http://query:16686
     ports:
-      - "3000:3000"  # Changed to 3010 to avoid conflict with api-gateway
+      - "3000:3000"  # MCP on port 3000 for Cursor
     networks:
       - jaeger-test
     depends_on:
       query:
         condition: service_started
- 
+
   # ============================================================================
   # BASKETBALL SHOES E-COMMERCE APPLICATION
   # ============================================================================
- 
+
   # Feature Flag Service
   flagd:
     image: ghcr.io/open-feature/flagd:latest
@@ -144,15 +144,16 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # API Gateway - routes all requests to backend services
   api-gateway:
+    image: ghcr.io/kcstills17/basketball-shoes-app/api-gateway:latest
     build:
       context: ../basketball-shoes-app/services/api-gateway
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "3010:3000"
+      - "3010:3000"  # API Gateway on port 3010
     environment:
       - SERVICE_NAME=api-gateway
       - PORT=3000
@@ -175,9 +176,10 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # Product Service
   product-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/product-service:latest
     build:
       context: ../basketball-shoes-app/services/product-service
       dockerfile: Dockerfile
@@ -196,9 +198,10 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # Cart Service
   cart-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/cart-service:latest
     build:
       context: ../basketball-shoes-app/services/cart-service
       dockerfile: Dockerfile
@@ -217,9 +220,10 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # Order Service
   order-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/order-service:latest
     build:
       context: ../basketball-shoes-app/services/order-service
       dockerfile: Dockerfile
@@ -242,9 +246,10 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # Payment Service
   payment-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/payment-service:latest
     build:
       context: ../basketball-shoes-app/services/payment-service
       dockerfile: Dockerfile
@@ -263,9 +268,10 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # Recommendation Service
   recommendation-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/recommendation-service:latest
     build:
       context: ../basketball-shoes-app/services/recommendation-service
       dockerfile: Dockerfile
@@ -284,9 +290,10 @@ services:
     networks:
       - jaeger-test
     restart: unless-stopped
- 
+
   # Frontend - React application
   frontend:
+    image: ghcr.io/kcstills17/basketball-shoes-app/frontend:latest
     build:
       context: ../basketball-shoes-app/frontend
       dockerfile: Dockerfile
