@@ -163,7 +163,7 @@ services:
       - RECOMMENDATION_SERVICE=http://recommendation-service:3005
       - FLAGD_CONFIG_PATH=/app/flagd-config.json
     volumes:
-      - ./flagd-config.json:/app/flagd-config.json  # ← CHANGED
+      - ./flagd-config.json:/app/flagd-config.json  
     depends_on:
       - collector
       - product-service
@@ -282,6 +282,7 @@ services:
   # Frontend - React application
   frontend:
     image: ghcr.io/kcstills17/basketball-shoes-app/frontend:latest
+    platform: linux/amd64
     # REMOVED: build section
     container_name: frontend
     ports:
