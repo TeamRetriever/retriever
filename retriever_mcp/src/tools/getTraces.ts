@@ -14,7 +14,7 @@ export const getTracesTool = {
         min_duration: z.string().optional().describe('Minimum duration like "10ms", "100ms"'),
         filter: z.enum(['all', 'errors', 'successful']).optional().default('all').describe('Filter traces by status: "all" (default), "errors" only, or "successful" only'),
     }, 
-    outputSchema: {result: z.any()}, 
+    outputSchema: {result: z.any()},
 
     handler: async (params: {
         service: string;
