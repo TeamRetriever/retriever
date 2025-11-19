@@ -67,10 +67,13 @@ terraform.rc
 # Ignore environment-specific files
 .envrc
 
-# sample trace data 
-sample_trace.json 
-
 # Ignore sensitive files
 *.pem
 *.key
 *.pub
+
+# basketball shoes app
+basketball-shoes-app
+
+# sample trace data 
+sample_trace.json 

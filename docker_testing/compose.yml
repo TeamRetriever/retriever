@@ -1,29 +1,34 @@
-# Experimenting with running a distributed jaeger architecture with openearch backend
+# Distributed Jaeger architecture with OpenSearch backend + Basketball Shoes E-commerce App
+# This file should replace docker_testing/compose.yml in your main project
 
 networks:
   jaeger-test:
     driver: bridge
 
-secrets: 
-  slack_webhook: 
+secrets:
+  slack_webhook:
     file: ./slack_webhook.txt
-  slack_channel: 
+  slack_channel:
     file: ./slack_channel.txt
 
 services:
-  # jaeger collector
+  # ============================================================================
+  # JAEGER INFRASTRUCTURE
+  # ============================================================================
+
+  # Jaeger Collector - receives traces from applications
   collector:
     image: jaegertracing/jaeger:2.11.0
     command: ["--config", "/etc/collector/config.yml"]
-    volumes: 
+    volumes:
       - ./collector/config.yml:/etc/collector/config.yml
     environment:
-      - SPAN_STORAGE_TYPE=opensearch # not sure if needed
-      - ES_SERVER_URLS=http://opensearch:9200 # not sure if needed
+      - SPAN_STORAGE_TYPE=opensearch
+      - ES_SERVER_URLS=http://opensearch:9200
     ports:
       - "4317:4317"    # OTLP gRPC receiver
       - "4318:4318"    # OTLP HTTP receiver
-      - "8889:8889"   # Prometheus metrics endpoint 
+      - "8889:8889"    # Prometheus metrics endpoint
     networks:
       - jaeger-test
     depends_on:
@@ -31,16 +36,16 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-# jaeger query service
+  # Jaeger Query - UI for viewing traces
   query:
     image: jaegertracing/jaeger:2.11.0
     command: ["--config", "/etc/query/config.yml"]
-    volumes: 
+    volumes:
       - ./query/config.yml:/etc/query/config.yml
       - ./query/config-ui.json:/etc/query/config-ui.json
     environment:
-      - SPAN_STORAGE_TYPE=opensearch # not sure if needed
-      - ES_SERVER_URLS=http://opensearch:9200 # not sure if needed
+      - SPAN_STORAGE_TYPE=opensearch
+      - ES_SERVER_URLS=http://opensearch:9200
     ports:
       - "16686:16686"
     networks:
@@ -50,20 +55,17 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-
-    
-
-  # opensearch
+  # OpenSearch - trace storage backend
   opensearch:
-    image: opensearchproject/opensearch:2.11.1 
-    environment: 
-      - discovery.type=single-node  # standalone instance setting 
-      - DISABLE_SECURITY_PLUGIN=true  # Disable security for local dev (equivalent to xpack.security.enabled=false)
-      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m  # Limit memory usage to 512MB
-      - bootstrap.memory_lock=true  # Recommended for production-like performance
-    ports: 
+    image: opensearchproject/opensearch:2.11.1
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - bootstrap.memory_lock=true
+    ports:
       - "9200:9200"
-    networks: 
+    networks:
       - jaeger-test
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
@@ -71,7 +73,9 @@ services:
       timeout: 5s
       retries: 12
       start_period: 60s
+    restart: unless-stopped
 
+  # Prometheus - metrics collection
   prometheus:
     image: prom/prometheus:latest
     command:
@@ -93,49 +97,198 @@ services:
   # AlertManager - handles alerts from Prometheus
   alertmanager:
     image: prom/alertmanager:latest
-    secrets: 
+    secrets:
       - slack_webhook
       - slack_channel
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
     environment:
       - SLACK_WEBHOOK_URL_FILE=/run/secrets/slack_webhook
-    volumes:  
+    volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    profiles: 
-      - alerts # will start only when as apart of an additional argument in compose command 
-  
+    profiles:
+      - alerts
     ports:
       - "9093:9093"
     networks:
       - jaeger-test
     restart: unless-stopped
 
+  # MCP Service
   mcp:
     build: ../retriever_mcp
     platform: linux/amd64
     environment:
       - URL=http://query:16686
     ports:
-      - "3000:3000"
+      - "3000:3000"  # MCP on port 3000 for Cursor
     networks:
       - jaeger-test
     depends_on:
       query:
         condition: service_started
-    
 
-# HotROD demo application - generates trace data
-  hotrod:
-    image: jaegertracing/example-hotrod:latest
+  # ============================================================================
+  # BASKETBALL SHOES E-COMMERCE APPLICATION
+  # ============================================================================
+
+    # Feature Flag Service
+  flagd:
+    image: ghcr.io/open-feature/flagd:latest
+    container_name: flagd
     ports:
-      - "8080:8080"
-      - "8083:8083"
-    command: ["all"]
-    environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4318
+      - "8013:8013"
+    command: ["start", "--uri", "file:/etc/flagd/flagd-config.json"]
+    volumes:
+      - ./flagd-config.json:/etc/flagd/flagd-config.json  # ← CHANGED
     networks:
       - jaeger-test
+    restart: unless-stopped
+
+  # API Gateway - routes all requests to backend services
+  api-gateway:
+    image: ghcr.io/kcstills17/basketball-shoes-app/api-gateway:latest
+    # REMOVED: build section
+    container_name: api-gateway
+    ports:
+      - "3010:3000"  # API Gateway on port 3010
+    environment:
+      - SERVICE_NAME=api-gateway
+      - PORT=3000
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - PRODUCT_SERVICE=http://product-service:3001
+      - CART_SERVICE=http://cart-service:3002
+      - ORDER_SERVICE=http://order-service:3003
+      - PAYMENT_SERVICE=http://payment-service:3004
+      - RECOMMENDATION_SERVICE=http://recommendation-service:3005
+      - FLAGD_CONFIG_PATH=/app/flagd-config.json
+    volumes:
+      - ./flagd-config.json:/app/flagd-config.json  
     depends_on:
       - collector
+      - product-service
+      - cart-service
+      - order-service
+      - payment-service
+      - recommendation-service
+    networks:
+      - jaeger-test
+    restart: unless-stopped
+
+  # Product Service
+  product-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/product-service:latest
+    # REMOVED: build section
+    container_name: product-service
+    ports:
+      - "3001:3001"
+    environment:
+      - SERVICE_NAME=product-service
+      - PORT=3001
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - collector
+      - flagd
+    networks:
+      - jaeger-test
+    restart: unless-stopped
+
+  # Cart Service
+  cart-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/cart-service:latest
+    # REMOVED: build section
+    container_name: cart-service
+    ports:
+      - "3002:3002"
+    environment:
+      - SERVICE_NAME=cart-service
+      - PORT=3002
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - collector
+      - flagd
+    networks:
+      - jaeger-test
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/order-service:latest
+    # REMOVED: build section
+    container_name: order-service
+    ports:
+      - "3003:3003"
+    environment:
+      - SERVICE_NAME=order-service
+      - PORT=3003
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+      - CART_SERVICE=http://cart-service:3002
+      - PAYMENT_SERVICE=http://payment-service:3004
+    depends_on:
+      - collector
+      - flagd
+      - cart-service
+      - payment-service
+    networks:
+      - jaeger-test
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/payment-service:latest
+    # REMOVED: build section
+    container_name: payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - SERVICE_NAME=payment-service
+      - PORT=3004
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - collector
+      - flagd
+    networks:
+      - jaeger-test
+    restart: unless-stopped
+
+  # Recommendation Service
+  recommendation-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/recommendation-service:latest
+    # REMOVED: build section
+    container_name: recommendation-service
+    ports:
+      - "3005:3005"
+    environment:
+      - SERVICE_NAME=recommendation-service
+      - PORT=3005
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - collector
+      - flagd
+    networks:
+      - jaeger-test
+    restart: unless-stopped
+
+  # Frontend - React application
+  frontend:
+    image: ghcr.io/kcstills17/basketball-shoes-app/frontend:latest
+    platform: linux/amd64
+    # REMOVED: build section
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - jaeger-test
     restart: unless-stopped
