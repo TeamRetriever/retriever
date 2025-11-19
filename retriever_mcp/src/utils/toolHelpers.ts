@@ -222,18 +222,23 @@ function extractSpanLogs(span: OTLPSpan): TraceSummary['logs'] {
     }));
 }
 
-function nanoToISOString(unixNano: string) {
-  const nanosecondsPerMillisecond = 1000000;
-  const date = new Date(Math.round(Number(unixNano) / nanosecondsPerMillisecond));
-  return date.toISOString();
+function nanoToISOString(nanoTimestamp: string) {
+    const nanoseconds = BigInt(nanoTimestamp);
+    const milliseconds = Number(nanoseconds / BigInt(1000000));
+    const date = new Date(milliseconds);
+    return date.toISOString(); 
 }
+
+
+
 
 // Builds a complete TraceSummary object from a span
 function buildTraceSummary(span: OTLPSpan, serviceName: string): TraceSummary {
     const status = getSpanStatus(span);
     const duration = calculateDuration(span);
     const tags = extractRelevantTags(span);
-    const startTime = nanoToISOString(span.startTimeUnixNano);
+    //const startTime = nanoToISOString(span.startTimeUnixNano);
+    const startTime = nanoToISOString(span.startTimeUnixNano)
 
     // Extract commonly-needed attributes for top-level access
     const errorTypeAttr = span.attributes ? findAttribute(span.attributes, 'error.type') : undefined;
@@ -244,7 +249,7 @@ function buildTraceSummary(span: OTLPSpan, serviceName: string): TraceSummary {
         spanId: span.spanId,
         service: serviceName,
         operation: span.name,
-        startTime,
+        startTime, 
         duration,
         status,
         errorMessage: status === 'error' ? (span.status?.message || 'No error message') : undefined,
