@@ -48,13 +48,32 @@ logs/
 *~
 
 # Terraform local state and providers
-.terraform/
+**/.terraform/*
+*.auto.tfvars
+*.tfvars
+*.tfvars.json
 *.tfstate
+*.tfstate.*
 *.tfstate.backup
 crash.log
 
-# sanple trace data 
-sample_trace.json 
+# Terraform override files
+*.tfoverride
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore environment-specific files
+.envrc
+
+# Ignore sensitive files
+*.pem
+*.key
+*.pub
 
 # basketball shoes app
 basketball-shoes-app
+
+# sample trace data 
+sample_trace.json 
