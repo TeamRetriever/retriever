@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
 import { listServicesTool, getTraceSampleTool, getTracesTool } from "./tools/index";
+import { getServiceHealthTool } from "./tools/getServiceHealth";
 
 // initialize the server
 const server = new McpServer({
@@ -22,14 +23,14 @@ server.registerTool(
 );
 
 server.registerTool(
-  getTraceSampleTool.name,
+  getServiceHealthTool.name,
   {
-    title: "Get Sample Trace",
-    description: getTraceSampleTool.description,
-    inputSchema: getTraceSampleTool.inputSchema,
-    outputSchema: getTraceSampleTool.outputSchema,
+    title: "Check a Services' Health",
+    description: getServiceHealthTool.description,
+    inputSchema: getServiceHealthTool.inputSchema,
+    outputSchema: getServiceHealthTool.outputSchema,
   },
-  getTraceSampleTool.handler
+  getServiceHealthTool.handler
 );
 
 server.registerTool(
