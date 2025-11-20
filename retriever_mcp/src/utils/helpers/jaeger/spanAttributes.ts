@@ -1,4 +1,4 @@
-import type { OTLPAttribute, OTLPSpan } from "../../../types/types";
+import type { OTLPAttribute, OTLPSpan } from "../../../types/jaeger";
 
 // Extracts the actual value from an OTLP attribute's variant type
 // Since Jaeger key values will always only have 1 property populated, this function returns the one true value

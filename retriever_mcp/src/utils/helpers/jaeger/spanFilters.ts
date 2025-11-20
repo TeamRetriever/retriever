@@ -1,4 +1,4 @@
-import type { OTLPSpan } from "../../../types/types";
+import type { OTLPSpan } from "../../../types/jaeger";
 
 // Filter for error spans only
 function isErrorSpan(span: OTLPSpan): boolean {

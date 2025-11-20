@@ -1,6 +1,6 @@
 import {nanoToISOString} from "../shared/time"
 import {extractRelevantTags, findAttribute} from "../jaeger/spanAttributes"
-import type { OTLPSpan, TraceSummary, OTLPResourceSpan, JaegerOTLPResponse, ExtractedTraces} from "../../../types/types";
+import type { OTLPSpan, TraceSummary, OTLPResourceSpan, JaegerOTLPResponse, ExtractedTraces} from "../../../types/jaeger";
 
 // Calculates span duration in milliseconds from nanosecond timestamps
 function calculateDuration(span: OTLPSpan): string {
