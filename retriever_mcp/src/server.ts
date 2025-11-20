@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { listServicesTool, getTraceSampleTool, getTracesTool } from "./tools/index";
-import { getServiceHealthTool } from "./tools/getServiceHealth";
+import { listServicesTool, getServiceHealthTool,  getTracesTool } from "./tools/index";
+
 
 // initialize the server
 const server = new McpServer({
