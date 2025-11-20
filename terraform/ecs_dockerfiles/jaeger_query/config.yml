@@ -1,0 +1,48 @@
+service:
+  extensions: [jaeger_query, jaeger_storage, healthcheckv2] # jaeger_storage may be needed to specify location of db
+  pipelines:
+    traces:
+      receivers: [nop]
+      processors: [batch]
+      exporters: [nop]
+  # telemetry:
+  #   resource:
+  #     service.name: jaeger-query
+  #   metrics:
+  #     level: detailed
+  #     readers:
+  #       - pull:
+  #           exporter:
+  #             prometheus:
+  #               host: 0.0.0.0
+  #               port: 8888
+  #   logs:
+  #     level: info
+
+extensions:
+  healthcheckv2:
+    use_v2: true
+    http:
+
+  jaeger_query:
+    storage:
+      traces: opensearch_storage
+    ui:
+      config_file: /etc/config-ui.json
+
+  jaeger_storage: # manages storage backend. It can perform actions like handles connection pooling, retries, health checks, it can also define multiple backends. 
+    backends:
+      opensearch_storage:
+        opensearch:
+          # Correct key for Jaeger v2 with Elasticsearch
+          server_urls:
+            - http://opensearch-api.retriever:9200
+
+receivers:
+  nop:
+
+processors:
+  batch:
+
+exporters:
+  nop:
