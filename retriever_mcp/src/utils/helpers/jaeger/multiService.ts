@@ -3,8 +3,9 @@ import { getFilterFunction } from "./spanFilters";
 import { extractTraceSummary } from "./spanExtraction";
 import type { AllServicesResult, JaegerServicesResponse, ServiceTraceResult, JaegerOTLPResponse } from "../../../types/jaeger";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
+
 // Search all services with optional filtering
-async function getAllServicesTraceSummary(
+export async function getAllServicesTraceSummary(
     jaegerUrl: string,
     startTime: Date,
     endTime: Date,
