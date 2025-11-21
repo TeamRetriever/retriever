@@ -1,8 +1,8 @@
 {
   "$schema": "https://flagd.dev/schema/v0/flags.json",
   "flags": {
-    "cart-service-failure": {
-      "description": "Simulates cart service being down - returns 503 errors",
+    "a3f7b2c8": {
+      "description": "Cart Service - Enable service unavailable mode (returns 503 for all requests)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -10,8 +10,8 @@
       },
       "defaultVariant": "off"
     },
-    "payment-processing-error": {
-      "description": "Causes payment processing to fail",
+    "4c2f8a6e": {
+      "description": "Payment Service - Force payment gateway errors (all transactions fail)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -19,8 +19,8 @@
       },
       "defaultVariant": "off"
     },
-    "slow-product-api": {
-      "description": "Adds 3-5 second delays to product service responses",
+    "f2a9d3e7": {
+      "description": "Product Service - Add 3-5 second delay to all product API requests",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -28,8 +28,8 @@
       },
       "defaultVariant": "off"
     },
-    "slow-recommendation-api": {
-      "description": "Adds 5-10 second delays to recommendation service",
+    "1e9b4f7c": {
+      "description": "Recommendation Service - Add 5-10 second delay to recommendation requests",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -37,8 +37,8 @@
       },
       "defaultVariant": "off"
     },
-    "enable-discounts": {
-      "description": "Enables discount calculations in cart",
+    "5b2d7e9a": {
+      "description": "Cart Service - Enable 10% discount for orders over $200",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -46,17 +46,17 @@
       },
       "defaultVariant": "off"
     },
-    "show-recommendations": {
-      "description": "Shows product recommendations on product pages",
+    "5a3d8e2f": {
+      "description": "Recommendation Service - Show/hide product recommendations",
       "state": "ENABLED",
       "variants": {
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "off"
     },
-    "product-display-mode": {
-      "description": "Controls product listing display mode",
+    "c4f8a1e6": {
+      "description": "Product Service - Product listing display mode (grid vs list)",
       "state": "ENABLED",
       "variants": {
         "grid": "grid",
@@ -64,8 +64,8 @@
       },
       "defaultVariant": "grid"
     },
-    "checkout-flow-variant": {
-      "description": "Different checkout flow variants",
+    "4e8d1b3f": {
+      "description": "Cart Service - Checkout flow type (single-page vs multi-step)",
       "state": "ENABLED",
       "variants": {
         "single-page": "single-page",
@@ -73,8 +73,8 @@
       },
       "defaultVariant": "multi-step"
     },
-    "order-service-timeout": {
-      "description": "Simulates order service timeouts",
+    "7b3f9d2e": {
+      "description": "Order Service - Simulate 35+ second processing timeout",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -82,8 +82,8 @@
       },
       "defaultVariant": "off"
     },
-    "database-connection-error": {
-      "description": "Simulates database connection failures",
+    "8e5a3d9c": {
+      "description": "System-Wide - Simulate database connection failures",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -91,8 +91,8 @@
       },
       "defaultVariant": "off"
     },
-    "intermittent-cart-failure": {
-      "description": "Random 50% failure rate on cart operations - great for testing retry logic",
+    "d4e8c9f1": {
+      "description": "Cart Service - Intermittent failures (50% random failure rate)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -100,8 +100,8 @@
       },
       "defaultVariant": "off"
     },
-    "invalid-product-data": {
-      "description": "Returns corrupted/malformed product data to test error handling",
+    "3a7e5d2b": {
+      "description": "Product Service - Return corrupted/malformed product data",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -109,8 +109,8 @@
       },
       "defaultVariant": "off"
     },
-    "rate-limit-products": {
-      "description": "Enforces rate limiting on product API (max 5 requests per minute)",
+    "b5c8e1f4": {
+      "description": "Product Service - Enforce rate limiting (5 requests per minute)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -118,8 +118,8 @@
       },
       "defaultVariant": "off"
     },
-    "memory-leak-simulation": {
-      "description": "Simulates memory pressure and resource exhaustion",
+    "6b4f1e8a": {
+      "description": "System-Wide - Simulate memory leak/pressure conditions",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -127,8 +127,8 @@
       },
       "defaultVariant": "off"
     },
-    "stale-cache-data": {
-      "description": "Returns outdated cached product data (prices 20% higher)",
+    "6d7f2a3c": {
+      "description": "Product Service - Return stale cache data (prices inflated by 20%)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -136,8 +136,8 @@
       },
       "defaultVariant": "off"
     },
-    "partial-order-response": {
-      "description": "Returns incomplete order data (missing fields)",
+    "e6a4c8f1": {
+      "description": "Order Service - Return incomplete/partial order data",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -145,8 +145,8 @@
       },
       "defaultVariant": "off"
     },
-    "cart-data-corruption": {
-      "description": "Corrupts cart item quantities and totals",
+    "8c1f4a6b": {
+      "description": "Cart Service - Corrupt cart quantities and totals (±20%)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -154,8 +154,8 @@
       },
       "defaultVariant": "off"
     },
-    "recommendation-cascade-failure": {
-      "description": "Recommendation failures trigger product service errors (cascading failure)",
+    "9f6c2e4b": {
+      "description": "Recommendation Service - Trigger cascading service failures",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -163,8 +163,8 @@
       },
       "defaultVariant": "off"
     },
-    "api-gateway-timeout": {
-      "description": "API Gateway times out before backend services respond",
+    "3c7d2f9e": {
+      "description": "API Gateway - Trigger gateway timeout errors",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -172,17 +172,8 @@
       },
       "defaultVariant": "off"
     },
-    "duplicate-order-processing": {
-      "description": "Simulates duplicate order creation (idempotency test)",
-      "state": "ENABLED",
-      "variants": {
-        "on": true,
-        "off": false
-      },
-      "defaultVariant": "on"
-    },
-    "inventory-service-503": {
-      "description": "Simulates inventory check service being unavailable",
+    "2d9e7b4a": {
+      "description": "Order Service - Test duplicate order/idempotency handling",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -190,8 +181,8 @@
       },
       "defaultVariant": "off"
     },
-    "payment-retry-exhaustion": {
-      "description": "Payment fails even after retries (tests retry limits)",
+    "d1e6b8f4": {
+      "description": "System-Wide - Make inventory service unavailable (503 errors)",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -199,8 +190,8 @@
       },
       "defaultVariant": "off"
     },
-    "trace-context-corruption": {
-      "description": "Simulates broken trace propagation (breaks distributed tracing)",
+    "f8e3b5d1": {
+      "description": "Payment Service - Test payment retry limit exhaustion",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -208,8 +199,8 @@
       },
       "defaultVariant": "off"
     },
-    "response-size-bloat": {
-      "description": "Returns unnecessarily large payloads (10x normal size)",
+    "7f2a9c5e": {
+      "description": "System-Wide - Corrupt distributed tracing context propagation",
       "state": "ENABLED",
       "variants": {
         "on": true,
@@ -217,8 +208,17 @@
       },
       "defaultVariant": "off"
     },
-    "error-rate-percentage": {
-      "description": "Configurable error rate for chaos testing",
+    "9e4b1c8f": {
+      "description": "Product Service - Inflate response payload size (10x bloat)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "b9f5e2d6": {
+      "description": "System-Wide - Set global error rate percentage (0/10/25/50/75/100%)",
       "state": "ENABLED",
       "variants": {
         "0": 0,

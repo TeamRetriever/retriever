@@ -1,3 +1,10 @@
+
+// Top-level response from Jaeger's /api/v3/traces endpoint
+export interface JaegerOTLPResponse {
+    result: {
+        resourceSpans: OTLPResourceSpan[]; // Array of traces from different services/hosts
+    };
+}
 // Jaeger OTLP trace structure types
 
 // Key-value pair for metadata/tags - can hold string, number, or boolean values
@@ -50,12 +57,15 @@ export interface OTLPResourceSpan {
     scopeSpans: OTLPScopeSpan[];    // Groups of spans organized by instrumentation library
 }
 
-// Top-level response from Jaeger's /api/v3/traces endpoint
-export interface JaegerOTLPResponse {
-    result: {
-        resourceSpans: OTLPResourceSpan[]; // Array of traces from different services/hosts
+// Result of searching for errors across multiple services
+export interface AllServicesResult {
+    summary: {
+        total: number;        // Total number of services searched
+        with_traces: number;  // How many services had errors
     };
+    traces_by_service: ServiceTraceResult[]; // Error details grouped by service
 }
+
 
 
 
@@ -96,13 +106,4 @@ export interface ServiceTraceResult {
     service: string;              // Service name
     trace_count: number;          // Number of traces found
     traces: TraceSummary[];       // Trace summaries from this service
-}
-
-// Result of searching for errors across multiple services
-export interface AllServicesResult {
-    summary: {
-        total: number;        // Total number of services searched
-        with_traces: number;  // How many services had errors
-    };
-    traces_by_service: ServiceTraceResult[]; // Error details grouped by service
 }

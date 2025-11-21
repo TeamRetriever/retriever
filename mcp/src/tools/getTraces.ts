@@ -1,7 +1,10 @@
 import z from "zod";
 import type { TextContent } from "@modelcontextprotocol/sdk/types.js";
-import { parseLookback, getAllServicesTraceSummary, extractTraceSummary, getFilterFunction } from "../utils/toolHelpers"
-import { JaegerOTLPResponse, OTLPSpan } from "../types/types";
+import { parseLookback } from "../utils/helpers/shared/time";
+import { getAllServicesTraceSummary } from "../utils/helpers/jaeger/multiService";
+import { extractTraceSummary } from "../utils/helpers/jaeger/spanExtraction";
+import { getFilterFunction } from "../utils/helpers/jaeger/spanFilters";
+import { JaegerOTLPResponse, OTLPSpan } from "../types/jaeger";
 
 export const getTracesTool = {
     name: "get_traces", 
