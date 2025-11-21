@@ -1,6 +1,12 @@
 import type { PrometheusQueryResult } from "../../../types/prometheus";
 
- async function queryPrometheus(
+/**
+ * Executes a PromQL query against the Prometheus API
+ * @param baseUrl - The base URL of the Prometheus server
+ * @param query - The PromQL query string to execute
+ * @returns Prometheus query result or null if the query fails
+ */
+async function queryPrometheus(
     baseUrl: string,
     query: string
   ): Promise<PrometheusQueryResult | null> {
@@ -23,8 +29,14 @@ import type { PrometheusQueryResult } from "../../../types/prometheus";
     }
   }
 
-
-  function extractValue(result: PrometheusQueryResult | null, defaultValue: number = 0): number {
+/**
+ * Extracts a single numeric value from a Prometheus query result
+ * Useful for scalar metrics like error rates, throughput, or percentiles
+ * @param result - The Prometheus query result
+ * @param defaultValue - Value to return if no result is found (default: 0)
+ * @returns The extracted numeric value
+ */
+function extractValue(result: PrometheusQueryResult | null, defaultValue: number = 0): number {
     if (!result || !result.data.result || result.data.result.length === 0) {
       return defaultValue;
     }
@@ -37,8 +49,15 @@ import type { PrometheusQueryResult } from "../../../types/prometheus";
     
     return defaultValue;
   }
-  
-  function extractTopK(result: PrometheusQueryResult | null): Array<{metric: Record<string, string>, value: number}> {
+
+/**
+ * Extracts multiple results from a topk() Prometheus query
+ * Returns an array of metrics with their labels and values
+ * Useful for identifying top error operations, slowest endpoints, etc.
+ * @param result - The Prometheus query result from a topk() query
+ * @returns Array of metrics with their labels and numeric values
+ */
+function extractTopK(result: PrometheusQueryResult | null): Array<{metric: Record<string, string>, value: number}> {
     if (!result || !result.data.result) {
       return [];
     }

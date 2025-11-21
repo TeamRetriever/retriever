@@ -21,13 +21,15 @@ export const getServiceHealthTool = {
       format?: 'summary' | 'detailed' | 'json';
       include_trends?: boolean;
     }) => {
+      // Configuration: Set up Prometheus URL and default parameters
       const prometheusUrl = process.env.PROMETHEUS_URL || "http://prometheus:9090";
       const lookback = params.lookback || "15m";
       const format = params.format || "summary";
-  
+
       console.log(`Querying Prometheus at ${prometheusUrl} for service: ${params.service}`);
-  
-      // Execute all Prometheus queries in parallel
+
+      // Step 1: Fetch all service metrics from Prometheus in parallel
+      // This queries for throughput, error rates, latency percentiles, problem operations, and trends
       const [
         throughputData,
         errorRateData,
@@ -102,8 +104,9 @@ export const getServiceHealthTool = {
           ) * 100`
         ) : Promise.resolve(null)
       ]);
-  
-      // Build health report from Prometheus data
+
+      // Step 2: Transform raw Prometheus data into a structured health report
+      // Aggregates metrics, determines health status, and extracts problem operations
       const healthReport = buildHealthReport(
         params.service,
         lookback,
@@ -116,15 +119,16 @@ export const getServiceHealthTool = {
         slowestOpsData,
         trendData
       );
-  
-      // Format output
+
+      // Step 3: Format the health report based on user preference (summary/detailed/json)
       const formattedOutput = formatHealthReport(healthReport, format);
   
       const textContent: TextContent = {
         type: "text",
         text: formattedOutput,
       };
-  
+
+      // Step 4: Return both formatted text (for display) and structured data (for programmatic use)
       return {
         content: [textContent],
         structuredContent: { result: healthReport },

@@ -3,8 +3,12 @@ import { parseLookbackToSeconds } from "../shared/time";
 import type { PrometheusQueryResult } from "../../../types/prometheus";
 import type { ServiceHealthMetrics } from "../../../types/prometheus";
 
-
-
+/**
+ * Determines the overall health status of a service based on error rate and latency
+ * @param errorRate - Percentage of requests that failed
+ * @param p95Latency - 95th percentile latency in milliseconds
+ * @returns 'healthy', 'degraded', or 'critical' status
+ */
 function determineHealthStatus(errorRate: number, p95Latency: number): 'healthy' | 'degraded' | 'critical' {
     if (errorRate > 5 || p95Latency > 1000) {
       return 'critical';
@@ -14,6 +18,10 @@ function determineHealthStatus(errorRate: number, p95Latency: number): 'healthy'
     return 'healthy';
   }
 
+/**
+ * Transforms raw Prometheus query results into a structured service health report
+ * Aggregates all metrics, calculates derived values, and structures the data for easy consumption
+ */
 function buildHealthReport(
     service: string,
     lookback: string,
@@ -26,40 +34,46 @@ function buildHealthReport(
     slowestOpsData: PrometheusQueryResult | null,
     trendData: PrometheusQueryResult | null
   ): ServiceHealthMetrics {
-    
-    // Extract scalar metrics
+
+    // Section 1: Extract core scalar metrics from Prometheus results
+    // Converts Prometheus query responses to simple numeric values
     const throughputRps = extractValue(throughputData, 0);
     const errorRate = extractValue(errorRateData, 0);
     const p50 = extractValue(p50Data, 0);
     const p95 = extractValue(p95Data, 0);
     const p99 = extractValue(p99Data, 0);
-    
-    // Calculate success rate
+
+    // Section 2: Calculate derived metrics
+    // Computes success rate and estimates total request/error counts based on throughput
     const successRate = Math.max(0, 100 - errorRate);
     
     // Estimate total requests (throughput * seconds in period)
     const secondsInPeriod = parseLookbackToSeconds(lookback);
     const estimatedTotalRequests = Math.round(throughputRps * secondsInPeriod);
     const estimatedErrorCount = Math.round((errorRate / 100) * estimatedTotalRequests);
-  
-    // Extract top error operations
+
+    // Section 3: Extract problem operations
+    // Identifies which specific operations are failing most frequently
     const topErrors = extractTopK(errorsByOpData).map(item => ({
       operation: item.metric.span_name || item.metric.operation || 'unknown',
       error_rate: `${item.value.toFixed(2)}%`,
       requests_per_sec: throughputRps.toFixed(2), // TODO: per-operation throughput if available
     }));
-  
-    // Extract slowest operations
+
+    // Section 4: Extract performance bottlenecks
+    // Identifies which operations are slowest (highest P95 latency)
     const slowestOps = extractTopK(slowestOpsData).map(item => ({
       operation: item.metric.span_name || item.metric.operation || 'unknown',
       p95_latency: `${item.value.toFixed(1)}ms`,
       requests_per_sec: throughputRps.toFixed(2), // TODO: per-operation throughput
     }));
-  
-    // Determine health status
+
+    // Section 5: Determine overall health status
+    // Uses error rate and latency thresholds to categorize service health
     const healthStatus = determineHealthStatus(errorRate, p95);
-  
-    // Build trend data if available
+
+    // Section 6: Calculate trends (if requested)
+    // Compares current metrics with previous period to detect improving/degrading patterns
     let trend: ServiceHealthMetrics['trend'] = undefined;
     if (trendData) {
       const previousErrorRate = extractValue(trendData, 0);
@@ -84,7 +98,9 @@ function buildHealthReport(
         change: `${errorRateDelta >= 0 ? '+' : ''}${errorRateDelta.toFixed(2)}% (${percentChange}%)`,
       };
     }
-  
+
+    // Section 7: Assemble final report structure
+    // Combines all analyzed data into a comprehensive health report
     return {
       service,
       period: lookback,
