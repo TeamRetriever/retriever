@@ -21,7 +21,7 @@ export const getServiceHealthTool = {
       format?: 'summary' | 'detailed' | 'json';
       include_trends?: boolean;
     }) => {
-      // Configuration: Set up Prometheus URL and default parameters
+  
       const prometheusUrl = process.env.PROMETHEUS_URL || "http://prometheus:9090";
       const lookback = params.lookback || "15m";
       const format = params.format || "summary";

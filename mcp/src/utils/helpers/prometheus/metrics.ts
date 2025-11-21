@@ -5,9 +5,9 @@ import type { ServiceHealthMetrics } from "../../../types/prometheus";
 
 /**
  * Determines the overall health status of a service based on error rate and latency
- * @param errorRate - Percentage of requests that failed
- * @param p95Latency - 95th percentile latency in milliseconds
- * @returns 'healthy', 'degraded', or 'critical' status
+ * errorRate - Percentage of requests that failed
+ * p95Latency - 95th percentile latency in milliseconds
+ * 'healthy', 'degraded', or 'critical' status
  */
 function determineHealthStatus(errorRate: number, p95Latency: number): 'healthy' | 'degraded' | 'critical' {
     if (errorRate > 5 || p95Latency > 1000) {
@@ -35,8 +35,9 @@ function buildHealthReport(
     trendData: PrometheusQueryResult | null
   ): ServiceHealthMetrics {
 
-    // Section 1: Extract core scalar metrics from Prometheus results
+    // Section 1: Extract core scalar metrics from Prometheus results (scalar metrics in prometheus are single numeric values)
     // Converts Prometheus query responses to simple numeric values
+    
     const throughputRps = extractValue(throughputData, 0);
     const errorRate = extractValue(errorRateData, 0);
     const p50 = extractValue(p50Data, 0);

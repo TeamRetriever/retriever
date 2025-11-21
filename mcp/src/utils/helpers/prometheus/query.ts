@@ -2,9 +2,10 @@ import type { PrometheusQueryResult } from "../../../types/prometheus";
 
 /**
  * Executes a PromQL query against the Prometheus API
- * @param baseUrl - The base URL of the Prometheus server
- * @param query - The PromQL query string to execute
- * @returns Prometheus query result or null if the query fails
+ * baseUrl - The base URL of the Prometheus server
+ * query - The PromQL query string to execute
+ * Prometheus query result or null if the query fails
+ * For clarity sake /api/v1 in this case is the endpoint for the prometheus API. I initialy was a bit confused by the similarity to the Jaeger api. They are not related. 
  */
 async function queryPrometheus(
     baseUrl: string,
@@ -32,9 +33,9 @@ async function queryPrometheus(
 /**
  * Extracts a single numeric value from a Prometheus query result
  * Useful for scalar metrics like error rates, throughput, or percentiles
- * @param result - The Prometheus query result
- * @param defaultValue - Value to return if no result is found (default: 0)
- * @returns The extracted numeric value
+ * result - The Prometheus query result
+ * defaultValue - Value to return if no result is found (default: 0)
+ * The extracted numeric value
  */
 function extractValue(result: PrometheusQueryResult | null, defaultValue: number = 0): number {
     if (!result || !result.data.result || result.data.result.length === 0) {
@@ -54,8 +55,8 @@ function extractValue(result: PrometheusQueryResult | null, defaultValue: number
  * Extracts multiple results from a topk() Prometheus query
  * Returns an array of metrics with their labels and values
  * Useful for identifying top error operations, slowest endpoints, etc.
- * @param result - The Prometheus query result from a topk() query
- * @returns Array of metrics with their labels and numeric values
+ * result - The Prometheus query result from a topk() query
+ * Array of metrics with their labels and numeric values
  */
 function extractTopK(result: PrometheusQueryResult | null): Array<{metric: Record<string, string>, value: number}> {
     if (!result || !result.data.result) {
