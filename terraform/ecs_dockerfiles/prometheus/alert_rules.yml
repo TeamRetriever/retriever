@@ -1,0 +1,71 @@
+# some rules to note with prometheus 
+# rate() calculates per-second rate of increase over a time window 
+groups: 
+  - name: retriever_alerts 
+    interval: 10s # how often we evaluate these rules. 
+    rules:
+      # Alert on any ERROR status
+      - alert: ServiceError # where we give alert names 
+        expr: | # this is how you set a promQL expression or condition 
+          rate(traces_span_metrics_calls_total{status_code="STATUS_CODE_ERROR"}[1m]) > 0
+        for: 30s # this determines how long the condition must be true before firing 
+        labels: # labels we can add to the alert 
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Service {{ $labels.service_name }} is returning errors"
+          description: "{{ $labels.service_name }} ({{ $labels.span_name }}) has {{ $value | humanize }} errors/sec"
+          
+      # Alert on high error rate (more than 5% of all spans )
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(traces_span_metrics_calls_total{status_code="STATUS_CODE_ERROR"}[5m])
+            / 
+            rate(traces_span_metrics_calls_total[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High error rate in {{ $labels.service_name }}"
+          description: "{{ $labels.service_name }} has {{ $value | humanizePercentage }} error rate"
+
+      # Alert on slow requests (P95 latency > 100ms)
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(traces_span_metrics_duration_milliseconds_bucket[5m])
+          ) > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: performance
+        annotations:
+          summary: "High latency detected in {{ $labels.service_name }}"
+          description: "P95 latency is {{ $value }}ms for {{ $labels.service_name }}"
+
+      # Alert when service is down (no metrics received)
+      - alert: ServiceDown
+        expr: |
+          up{job="otel-collector"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "OTel Collector is down"
+          description: "Prometheus cannot scrape metrics from {{ $labels.instance }}"
+
+      # Alert on a very high request rate (possible DDoS)
+      - alert: HighRequestRate
+        expr: |
+          rate(traces_span_metrics_calls_total[1m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Unusually high request rate"
+          description: "{{ $labels.service_name }} is receiving {{ $value | humanize }} requests/sec"
