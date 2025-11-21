@@ -1,4 +1,4 @@
-FROM prom/prometheus:v3.7.3
+FROM --platform=linux/amd64 prom/prometheus:v3.7.3
 
 EXPOSE 9090
 
