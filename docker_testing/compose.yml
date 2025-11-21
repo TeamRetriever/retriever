@@ -116,7 +116,7 @@ services:
 
   # MCP Service
   mcp:
-    build: ../retriever_mcp
+    build: ../mcp
     platform: linux/amd64
     environment:
       - URL=http://query:16686
