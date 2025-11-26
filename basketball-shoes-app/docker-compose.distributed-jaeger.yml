@@ -1,5 +1,4 @@
 # Distributed Jaeger architecture with OpenSearch backend + Basketball Shoes E-commerce App
-# This file should replace docker_testing/compose.yml in your main project
 
 networks:
   jaeger-test:
@@ -116,12 +115,12 @@ services:
 
   # MCP Service
   mcp:
-    build: ../mcp
+    build: ../retriever_mcp
     platform: linux/amd64
     environment:
       - URL=http://query:16686
     ports:
-      - "3000:3000"  # MCP on port 3000 for Cursor
+      - "3010:3000"  # Changed to 3010 to avoid conflict with api-gateway
     networks:
       - jaeger-test
     depends_on:
@@ -129,10 +128,10 @@ services:
         condition: service_started
 
   # ============================================================================
-  # BASKETBALL SHOES E-COMMERCE APPLICATION
+  # BASKETBALL SHOES E-COMMERCE APPLICATION (replaces HotROD)
   # ============================================================================
 
-    # Feature Flag Service: is it's own service like jaeger. 
+  # Feature Flag Service
   flagd:
     image: ghcr.io/open-feature/flagd:latest
     container_name: flagd
@@ -140,25 +139,25 @@ services:
       - "8013:8013"
     command: ["start", "--uri", "file:/etc/flagd/flagd-config.json"]
     volumes:
-      - ./flagd-config.json:/etc/flagd/flagd-config.json  # ← CHANGED
+      - ./flagd-config.json:/etc/flagd/flagd-config.json
     networks:
       - jaeger-test
     restart: unless-stopped
 
   # API Gateway - routes all requests to backend services
   api-gateway:
+    image: ghcr.io/kcstills17/basketball-shoes-app/api-gateway:latest
+    platform: linux/amd64
     build:
-      context: ../basketball-shoes-app/services/api-gateway
+      context: ./services/api-gateway
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: api-gateway
     ports:
-      - "3010:3000"  # API Gateway on port 3010
+      - "3000:3000"
     environment:
       - SERVICE_NAME=api-gateway
       - PORT=3000
-      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces  # ← Changed to collector
       - PRODUCT_SERVICE=http://product-service:3001
       - CART_SERVICE=http://cart-service:3002
       - ORDER_SERVICE=http://order-service:3003
@@ -166,7 +165,7 @@ services:
       - RECOMMENDATION_SERVICE=http://recommendation-service:3005
       - FLAGD_CONFIG_PATH=/app/flagd-config.json
     volumes:
-      - ./flagd-config.json:/app/flagd-config.json  
+      - ./flagd-config.json:/app/flagd-config.json
     depends_on:
       - collector
       - product-service
@@ -180,18 +179,18 @@ services:
 
   # Product Service
   product-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/product-service:latest
+    platform: linux/amd64
     build:
-      context: ../basketball-shoes-app/services/product-service
+      context: ./services/product-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: product-service
     ports:
       - "3001:3001"
     environment:
       - SERVICE_NAME=product-service
       - PORT=3001
-      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces  # ← Changed to collector
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
     depends_on:
@@ -203,18 +202,18 @@ services:
 
   # Cart Service
   cart-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/cart-service:latest
+    platform: linux/amd64
     build:
-      context: ../basketball-shoes-app/services/cart-service
+      context: ./services/cart-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: cart-service
     ports:
       - "3002:3002"
     environment:
       - SERVICE_NAME=cart-service
       - PORT=3002
-      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces  # ← Changed to collector
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
     depends_on:
@@ -226,18 +225,18 @@ services:
 
   # Order Service
   order-service:
-    build: 
-      context: ../basketball-shoes-app/services/order-service
+    image: ghcr.io/kcstills17/basketball-shoes-app/order-service:latest
+    platform: linux/amd64
+    build:
+      context: ./services/order-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: order-service
     ports:
       - "3003:3003"
     environment:
       - SERVICE_NAME=order-service
       - PORT=3003
-      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces  # ← Changed to collector
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
       - CART_SERVICE=http://cart-service:3002
@@ -253,18 +252,18 @@ services:
 
   # Payment Service
   payment-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/payment-service:latest
+    platform: linux/amd64
     build:
-      context: ../basketball-shoes-app/services/payment-service
+      context: ./services/payment-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: payment-service
     ports:
       - "3004:3004"
     environment:
       - SERVICE_NAME=payment-service
       - PORT=3004
-      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces  # ← Changed to collector
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
     depends_on:
@@ -276,18 +275,18 @@ services:
 
   # Recommendation Service
   recommendation-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/recommendation-service:latest
+    platform: linux/amd64
     build:
-      context: ../basketball-shoes-app/services/recommendation-service
+      context: ./services/recommendation-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: recommendation-service
     ports:
       - "3005:3005"
     environment:
       - SERVICE_NAME=recommendation-service
       - PORT=3005
-      - JAEGER_ENDPOINT=http://collector:4318/v1/traces
+      - JAEGER_ENDPOINT=http://collector:4318/v1/traces  # ← Changed to collector
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
     depends_on:
@@ -299,11 +298,11 @@ services:
 
   # Frontend - React application
   frontend:
+    image: ghcr.io/kcstills17/basketball-shoes-app/frontend:latest
     build:
-      context: ../basketball-shoes-app/frontend
+      context: ./frontend
       dockerfile: Dockerfile
-    platform: linux/amd64
-    # REMOVED: build section
+    platform: linux/amd64  # Frontend only built for AMD64, use Rosetta on ARM64
     container_name: frontend
     ports:
       - "80:80"

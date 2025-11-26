@@ -116,7 +116,7 @@ services:
 
   # MCP Service
   mcp:
-    build: ../mcp
+    build: ../retriever_mcp
     platform: linux/amd64
     environment:
       - URL=http://query:16686
@@ -132,7 +132,7 @@ services:
   # BASKETBALL SHOES E-COMMERCE APPLICATION
   # ============================================================================
 
-    # Feature Flag Service: is it's own service like jaeger. 
+  # Feature Flag Service
   flagd:
     image: ghcr.io/open-feature/flagd:latest
     container_name: flagd
@@ -140,18 +140,17 @@ services:
       - "8013:8013"
     command: ["start", "--uri", "file:/etc/flagd/flagd-config.json"]
     volumes:
-      - ./flagd-config.json:/etc/flagd/flagd-config.json  # ← CHANGED
+      - ./flagd-config.json:/etc/flagd/flagd-config.json
     networks:
       - jaeger-test
     restart: unless-stopped
 
   # API Gateway - routes all requests to backend services
   api-gateway:
+    image: ghcr.io/kcstills17/basketball-shoes-app/api-gateway:latest
     build:
       context: ../basketball-shoes-app/services/api-gateway
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: api-gateway
     ports:
       - "3010:3000"  # API Gateway on port 3010
@@ -166,7 +165,7 @@ services:
       - RECOMMENDATION_SERVICE=http://recommendation-service:3005
       - FLAGD_CONFIG_PATH=/app/flagd-config.json
     volumes:
-      - ./flagd-config.json:/app/flagd-config.json  
+      - ../basketball-shoes-app/flagd-config.json:/app/flagd-config.json
     depends_on:
       - collector
       - product-service
@@ -180,11 +179,10 @@ services:
 
   # Product Service
   product-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/product-service:latest
     build:
       context: ../basketball-shoes-app/services/product-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: product-service
     ports:
       - "3001:3001"
@@ -203,11 +201,10 @@ services:
 
   # Cart Service
   cart-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/cart-service:latest
     build:
       context: ../basketball-shoes-app/services/cart-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: cart-service
     ports:
       - "3002:3002"
@@ -226,11 +223,10 @@ services:
 
   # Order Service
   order-service:
-    build: 
+    image: ghcr.io/kcstills17/basketball-shoes-app/order-service:latest
+    build:
       context: ../basketball-shoes-app/services/order-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: order-service
     ports:
       - "3003:3003"
@@ -253,11 +249,10 @@ services:
 
   # Payment Service
   payment-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/payment-service:latest
     build:
       context: ../basketball-shoes-app/services/payment-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: payment-service
     ports:
       - "3004:3004"
@@ -276,11 +271,10 @@ services:
 
   # Recommendation Service
   recommendation-service:
+    image: ghcr.io/kcstills17/basketball-shoes-app/recommendation-service:latest
     build:
       context: ../basketball-shoes-app/services/recommendation-service
       dockerfile: Dockerfile
-    platform: linux/amd64 
-    # REMOVED: build section
     container_name: recommendation-service
     ports:
       - "3005:3005"
@@ -299,11 +293,11 @@ services:
 
   # Frontend - React application
   frontend:
+    image: ghcr.io/kcstills17/basketball-shoes-app/frontend:latest
+    platform: linux/amd64  # Frontend only built for AMD64, use Rosetta on ARM64
     build:
       context: ../basketball-shoes-app/frontend
       dockerfile: Dockerfile
-    platform: linux/amd64
-    # REMOVED: build section
     container_name: frontend
     ports:
       - "80:80"

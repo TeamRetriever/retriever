@@ -1,0 +1,234 @@
+{
+  "$schema": "https://flagd.dev/schema/v0/flags.json",
+  "flags": {
+    "a3f7b2c8": {
+      "description": "Cart Service - Enable service unavailable mode (returns 503 for all requests)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "4c2f8a6e": {
+      "description": "Payment Service - Force payment gateway errors (all transactions fail)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "f2a9d3e7": {
+      "description": "Product Service - Add 3-5 second delay to all product API requests",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "1e9b4f7c": {
+      "description": "Recommendation Service - Add 5-10 second delay to recommendation requests",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "5b2d7e9a": {
+      "description": "Cart Service - Enable 10% discount for orders over $200",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "5a3d8e2f": {
+      "description": "Recommendation Service - Show/hide product recommendations",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "c4f8a1e6": {
+      "description": "Product Service - Product listing display mode (grid vs list)",
+      "state": "ENABLED",
+      "variants": {
+        "grid": "grid",
+        "list": "list"
+      },
+      "defaultVariant": "grid"
+    },
+    "4e8d1b3f": {
+      "description": "Cart Service - Checkout flow type (single-page vs multi-step)",
+      "state": "ENABLED",
+      "variants": {
+        "single-page": "single-page",
+        "multi-step": "multi-step"
+      },
+      "defaultVariant": "multi-step"
+    },
+    "7b3f9d2e": {
+      "description": "Order Service - Simulate 35+ second processing timeout",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "8e5a3d9c": {
+      "description": "System-Wide - Simulate database connection failures",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "d4e8c9f1": {
+      "description": "Cart Service - Intermittent failures (50% random failure rate)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "3a7e5d2b": {
+      "description": "Product Service - Return corrupted/malformed product data",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "b5c8e1f4": {
+      "description": "Product Service - Enforce rate limiting (5 requests per minute)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "6b4f1e8a": {
+      "description": "System-Wide - Simulate memory leak/pressure conditions",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "6d7f2a3c": {
+      "description": "Product Service - Return stale cache data (prices inflated by 20%)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "e6a4c8f1": {
+      "description": "Order Service - Return incomplete/partial order data",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "8c1f4a6b": {
+      "description": "Cart Service - Corrupt cart quantities and totals (±20%)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "9f6c2e4b": {
+      "description": "Recommendation Service - Trigger cascading service failures",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "3c7d2f9e": {
+      "description": "API Gateway - Trigger gateway timeout errors",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "2d9e7b4a": {
+      "description": "Order Service - Test duplicate order/idempotency handling",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "d1e6b8f4": {
+      "description": "System-Wide - Make inventory service unavailable (503 errors)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "f8e3b5d1": {
+      "description": "Payment Service - Test payment retry limit exhaustion",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "7f2a9c5e": {
+      "description": "System-Wide - Corrupt distributed tracing context propagation",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "9e4b1c8f": {
+      "description": "Product Service - Inflate response payload size (10x bloat)",
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
+    "b9f5e2d6": {
+      "description": "System-Wide - Set global error rate percentage (0/10/25/50/75/100%)",
+      "state": "ENABLED",
+      "variants": {
+        "0": 0,
+        "10": 10,
+        "25": 25,
+        "50": 50,
+        "75": 75,
+        "100": 100
+      },
+      "defaultVariant": "0"
+    }
+  }
+}
