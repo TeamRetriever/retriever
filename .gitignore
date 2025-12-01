@@ -72,8 +72,7 @@ terraform.rc
 *.key
 *.pub
 
-# basketball shoes app
-basketball-shoes-app
+
 
 # sample trace data 
 sample_trace.json 

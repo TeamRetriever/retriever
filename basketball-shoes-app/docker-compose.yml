@@ -1,0 +1,176 @@
+services:
+  # Distributed Tracing (Jaeger)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - shoe-store-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - SERVICE_NAME=api-gateway
+      - PORT=3000
+      - JAEGER_ENDPOINT=http://jaeger:4318/v1/traces
+      - PRODUCT_SERVICE=http://product-service:3001
+      - CART_SERVICE=http://cart-service:3002
+      - ORDER_SERVICE=http://order-service:3003
+      - PAYMENT_SERVICE=http://payment-service:3004
+      - RECOMMENDATION_SERVICE=http://recommendation-service:3005
+      - FLAGD_CONFIG_PATH=/app/flagd-config.json
+    volumes:
+      - ./flagd-config.json:/app/flagd-config.json
+    depends_on:
+      - jaeger
+      - product-service
+      - cart-service
+      - order-service
+      - payment-service
+      - recommendation-service
+    networks:
+      - shoe-store-network
+
+  # Feature Flag Service
+  flagd:
+    image: ghcr.io/open-feature/flagd:latest
+    container_name: flagd
+    ports:
+      - "8013:8013"
+    command: ["start", "--uri", "file:/etc/flagd/flagd-config.json"]
+    volumes:
+      - ./flagd-config.json:/etc/flagd/flagd-config.json
+    networks:
+      - shoe-store-network
+
+  # Product Service
+  product-service:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "3001:3001"
+    environment:
+      - SERVICE_NAME=product-service
+      - PORT=3001
+      - JAEGER_ENDPOINT=http://jaeger:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - jaeger
+      - flagd
+    networks:
+      - shoe-store-network
+
+  # Cart Service
+  cart-service:
+    build:
+      context: ./services/cart-service
+      dockerfile: Dockerfile
+    container_name: cart-service
+    ports:
+      - "3002:3002"
+    environment:
+      - SERVICE_NAME=cart-service
+      - PORT=3002
+      - JAEGER_ENDPOINT=http://jaeger:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - jaeger
+      - flagd
+    networks:
+      - shoe-store-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "3003:3003"
+    environment:
+      - SERVICE_NAME=order-service
+      - PORT=3003
+      - JAEGER_ENDPOINT=http://jaeger:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+      - CART_SERVICE=http://cart-service:3002
+      - PAYMENT_SERVICE=http://payment-service:3004
+    depends_on:
+      - jaeger
+      - flagd
+      - cart-service
+      - payment-service
+    networks:
+      - shoe-store-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - SERVICE_NAME=payment-service
+      - PORT=3004
+      - JAEGER_ENDPOINT=http://jaeger:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - jaeger
+      - flagd
+    networks:
+      - shoe-store-network
+
+  # Recommendation Service
+  recommendation-service:
+    build:
+      context: ./services/recommendation-service
+      dockerfile: Dockerfile
+    container_name: recommendation-service
+    ports:
+      - "3005:3005"
+    environment:
+      - SERVICE_NAME=recommendation-service
+      - PORT=3005
+      - JAEGER_ENDPOINT=http://jaeger:4318/v1/traces
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - jaeger
+      - flagd
+    networks:
+      - shoe-store-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    platform: linux/amd64  # Frontend only built for AMD64, use Rosetta on ARM64
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - shoe-store-network
+
+networks:
+  shoe-store-network:
+    driver: bridge
