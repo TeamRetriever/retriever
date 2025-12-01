@@ -12,8 +12,39 @@ provider "aws" {
 }
 
 resource "aws_acm_certificate" "user-cert" {
-  private_key      = file(var.USER_CERTIFICATE_PRIVATE_KEY_FILE)
-  certificate_body = file(var.USER_CERTIFICATE_BODY_FILE)
+  domain_name       = var.DOMAIN_NAME
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+data "aws_route53_zone" "zone" {
+  name         = var.DOMAIN_NAME
+  private_zone = false
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.user-cert.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.zone.zone_id
+}
+
+resource "aws_acm_certificate_validation" "cert_validation" {
+  certificate_arn         = aws_acm_certificate.user-cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
 
@@ -97,7 +128,7 @@ resource "aws_lb_listener" "dummy-https" {
   load_balancer_arn = aws_lb.public-endpoint.arn
   port = "443"
   protocol = "HTTPS"
-  certificate_arn = aws_acm_certificate.user-cert.arn
+  certificate_arn = aws_acm_certificate_validation.cert_validation.certificate_arn
 
   default_action {
     type = "fixed-response"
