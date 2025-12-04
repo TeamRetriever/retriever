@@ -11,7 +11,7 @@ resource "aws_security_group" "opensearch" {
 resource "aws_vpc_security_group_ingress_rule" "opensearch" {
   security_group_id = aws_security_group.opensearch.id
 
-  cidr_ipv4   = "0.0.0.0/0"
+  referenced_security_group_id = aws_security_group.collector.id
   from_port   = 9200
   ip_protocol = "tcp"
   to_port     = 9200
