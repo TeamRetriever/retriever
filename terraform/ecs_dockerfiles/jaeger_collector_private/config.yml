@@ -22,7 +22,7 @@ extensions:
       opensearch_storage:
         opensearch:
           server_urls:
-            - http://opensearch-api.rvr-private:9200
+            - http://opensearch-api.retriever:9200
 
 
 connectors: 

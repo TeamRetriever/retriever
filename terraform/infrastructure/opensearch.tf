@@ -105,7 +105,7 @@ resource "aws_ecs_service" "rvr_opensearch" {
   }
 
   network_configuration {
-    assign_public_ip = true
+    assign_public_ip = false
     security_groups = [
       aws_security_group.tls_out.id,
       aws_security_group.opensearch.id
