@@ -10,6 +10,10 @@ variable "PUBLIC_SUBNET_ID_2" {
   type = string
 }
 
+variable "PRIVATE_SUBNET_ID" {
+  type = string
+}
+
 variable "USER_CERTIFICATE_PRIVATE_KEY_FILE" {
   type = string
 }

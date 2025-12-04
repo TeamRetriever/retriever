@@ -110,7 +110,7 @@ resource "aws_ecs_service" "rvr_opensearch" {
       aws_security_group.tls_out.id,
       aws_security_group.opensearch.id
     ]
-    subnets = [var.PUBLIC_SUBNET_ID_1]
+    subnets = [var.PRIVATE_SUBNET_ID]
   }
 
   service_connect_configuration {
