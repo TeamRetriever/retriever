@@ -49,13 +49,13 @@ groups:
       # Alert when service is down (no metrics received)
       - alert: ServiceDown
         expr: |
-          up{job="otel-collector"} == 0
+          up{job="jaeger-collector"} == 0
         for: 1m
         labels:
           severity: critical
           team: infrastructure
         annotations:
-          summary: "OTel Collector is down"
+          summary: "Jaeger Collector is down"
           description: "Prometheus cannot scrape metrics from {{ $labels.instance }}"
 
       # Alert on a very high request rate (possible DDoS)
