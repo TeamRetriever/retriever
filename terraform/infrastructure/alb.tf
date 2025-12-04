@@ -18,6 +18,10 @@ resource "aws_security_group" "alb-sg" {
   }
 }
 
+# TODO add ingress/egress rules for:
+# Port 3000 for the MCP
+# Port 16686 for Jaeger Query
+
 resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
   security_group_id = aws_security_group.alb-sg.id
   cidr_ipv4         = "0.0.0.0/0"
