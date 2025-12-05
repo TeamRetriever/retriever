@@ -72,7 +72,5 @@ terraform.rc
 *.key
 *.pub
 
-
-
 # sample trace data 
-sample_trace.json 
+sample_trace.json
