@@ -1,4 +1,10 @@
 FROM --platform=linux/amd64 jaegertracing/jaeger:2.11.0
+
+# add curl for health checks
+USER root
+RUN apk add --no-cache curl
+USER 10001
+
 # gRCP
 EXPOSE 4317
 # HTTP
