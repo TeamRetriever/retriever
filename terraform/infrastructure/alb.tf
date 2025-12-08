@@ -73,13 +73,22 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_query_health" {
   to_port                      = 16687
 }
 
-# query Prometheus UI
+# access Prometheus UI
 resource "aws_vpc_security_group_egress_rule" "alb_to_prometheus" {
   security_group_id            = aws_security_group.alb-sg.id
   referenced_security_group_id = aws_security_group.prometheus.id
   from_port                    = 9090
   ip_protocol                  = "tcp"
   to_port                      = 9090
+}
+
+# access MCP
+resource "aws_vpc_security_group_egress_rule" "alb_to_mcp" {
+  security_group_id            = aws_security_group.alb-sg.id
+  referenced_security_group_id = aws_security_group.mcp.id
+  from_port                    = 3000
+  ip_protocol                  = "tcp"
+  to_port                      = 3000
 }
 
 resource "aws_lb" "public-endpoint" {

@@ -16,7 +16,15 @@ resource "aws_vpc_security_group_ingress_rule" "query_from_alb" {
   ip_protocol                  = "tcp"
   to_port                      = 16686
 }
-# the LLM via MCP (is this the same endpoint?)
+
+# receives traffic from MCP
+resource "aws_vpc_security_group_ingress_rule" "query_from_mcp" {
+  security_group_id            = aws_security_group.query.id
+  referenced_security_group_id = aws_security_group.mcp.id
+  from_port                    = 16686
+  ip_protocol                  = "tcp"
+  to_port                      = 16686
+}
 
 # health check endpoint
 resource "aws_vpc_security_group_ingress_rule" "query_health_check" {

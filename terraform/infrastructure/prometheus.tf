@@ -26,6 +26,15 @@ resource "aws_vpc_security_group_ingress_rule" "prometheus_from_alb" {
   to_port                      = 9090
 }
 
+# receives requests from the MCP
+resource "aws_vpc_security_group_ingress_rule" "prometheus_from_mcp" {
+  security_group_id            = aws_security_group.prometheus.id
+  referenced_security_group_id = aws_security_group.mcp.id
+  from_port                    = 9090
+  ip_protocol                  = "tcp"
+  to_port                      = 9090
+}
+
 # egress: what can Prometheus reach?
 # Prometheus scrapes metrics from the Collector
 resource "aws_vpc_security_group_egress_rule" "prometheus_to_collector" {
