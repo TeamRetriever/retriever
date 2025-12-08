@@ -62,14 +62,14 @@ describe('buildHealthReport', () => {
     const report = buildHealthReport(
       'test-service',
       '15m',
-      createMockPrometheusResult(10), // throughput: 10 req/s
-      createMockPrometheusResult(0.5), // error rate: 0.5%
-      createMockPrometheusResult(50),  // p50: 50ms
-      createMockPrometheusResult(100), // p95: 100ms
-      createMockPrometheusResult(200), // p99: 200ms
-      null, // no errors by op
-      null, // no slowest ops
-      null  // no trends
+      createMockPrometheusResult(10),
+      createMockPrometheusResult(0.5),
+      createMockPrometheusResult(50),
+      createMockPrometheusResult(100),
+      createMockPrometheusResult(200),
+      null,
+      null,
+      null
     );
 
     expect(report.service).toBe('test-service');
@@ -132,13 +132,13 @@ describe('buildHealthReport', () => {
   });
 
   it('should calculate trend when provided', () => {
-    const trendData = createMockPrometheusResult(2.5); // previous error rate: 2.5%
+    const trendData = createMockPrometheusResult(2.5);
 
     const report = buildHealthReport(
       'test-service',
       '15m',
       createMockPrometheusResult(10),
-      createMockPrometheusResult(1.0), // current error rate: 1.0%
+      createMockPrometheusResult(1.0),
       createMockPrometheusResult(50),
       createMockPrometheusResult(100),
       createMockPrometheusResult(200),

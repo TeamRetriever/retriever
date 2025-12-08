@@ -1,5 +1,4 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],
@@ -12,10 +11,17 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        module: 'Node16',
-        moduleResolution: 'Node16',
+    '^.+\\.ts$': ['@swc/jest', {
+      jsc: {
+        target: 'es2022',
+        parser: {
+          syntax: 'typescript',
+          decorators: false,
+          dynamicImport: true,
+        },
+      },
+      module: {
+        type: 'commonjs',
       },
     }],
   },

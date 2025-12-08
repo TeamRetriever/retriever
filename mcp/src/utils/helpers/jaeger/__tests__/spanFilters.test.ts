@@ -9,7 +9,7 @@ describe('isErrorSpan', () => {
       spanId: 'span1',
       name: 'test-operation',
       startTimeUnixNano: '1000000',
-      status: { code: 2 }, // ERROR
+      status: { code: 2 },
     };
     expect(isErrorSpan(errorSpan)).toBe(true);
   });
@@ -20,7 +20,7 @@ describe('isErrorSpan', () => {
       spanId: 'span1',
       name: 'test-operation',
       startTimeUnixNano: '1000000',
-      status: { code: 1 }, // OK
+      status: { code: 1 },
     };
     expect(isErrorSpan(okSpan)).toBe(false);
   });
@@ -43,7 +43,7 @@ describe('isSuccessfulSpan', () => {
       spanId: 'span1',
       name: 'test-operation',
       startTimeUnixNano: '1000000',
-      status: { code: 1 }, // OK
+      status: { code: 1 },
     };
     expect(isSuccessfulSpan(okSpan)).toBe(true);
   });
@@ -64,7 +64,7 @@ describe('isSuccessfulSpan', () => {
       spanId: 'span1',
       name: 'test-operation',
       startTimeUnixNano: '1000000',
-      status: { code: 2 }, // ERROR
+      status: { code: 2 },
     };
     expect(isSuccessfulSpan(errorSpan)).toBe(false);
   });
@@ -76,7 +76,7 @@ describe('getFilterFunction', () => {
     spanId: 'span1',
     name: 'test-operation',
     startTimeUnixNano: '1000000',
-    status: { code: 2 }, // ERROR
+    status: { code: 2 },
   };
 
   it('should return error filter function for "errors"', () => {

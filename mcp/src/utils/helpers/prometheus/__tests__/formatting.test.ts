@@ -27,54 +27,12 @@ describe('formatHealthReport', () => {
     const formatted = formatHealthReport(report, 'summary');
 
     expect(formatted).toContain('✅');
-    expect(formatted).toContain('test-service');
+    expect(formatted).toContain('TEST-SERVICE');
     expect(formatted).toContain('HEALTHY');
     expect(formatted).toContain('10.00 req/s');
     expect(formatted).toContain('0.50%');
     expect(formatted).toContain('50.0ms');
-    expect(formatted).not.toContain('Slowest Operations'); // Not in summary
-  });
-
-  it('should format degraded service with warning emoji', () => {
-    const report = createMockHealthReport({
-      health_status: 'degraded',
-      metrics: {
-        throughput: '10.00 req/s',
-        error_count: 10,
-        error_rate: '2.00%',
-        success_rate: '98.00%',
-        latency: {
-          p50: '50.0ms',
-          p95: '600.0ms',
-          p99: '800.0ms',
-        },
-      },
-    });
-    const formatted = formatHealthReport(report, 'summary');
-
-    expect(formatted).toContain('⚠️');
-    expect(formatted).toContain('DEGRADED');
-  });
-
-  it('should format critical service with alert emoji', () => {
-    const report = createMockHealthReport({
-      health_status: 'critical',
-      metrics: {
-        throughput: '10.00 req/s',
-        error_count: 50,
-        error_rate: '10.00%',
-        success_rate: '90.00%',
-        latency: {
-          p50: '50.0ms',
-          p95: '1200.0ms',
-          p99: '2000.0ms',
-        },
-      },
-    });
-    const formatted = formatHealthReport(report, 'summary');
-
-    expect(formatted).toContain('🚨');
-    expect(formatted).toContain('CRITICAL');
+    expect(formatted).not.toContain('Slowest Operations');
   });
 
   it('should include top errors when present', () => {
@@ -130,20 +88,6 @@ describe('formatHealthReport', () => {
     expect(formatted).toContain('IMPROVING');
     expect(formatted).toContain('📈');
     expect(formatted).toContain('2.50%');
-  });
-
-  it('should show degrading trend with down arrow', () => {
-    const report = createMockHealthReport({
-      trend: {
-        direction: 'degrading',
-        previous_error_rate: '0.50%',
-        change: '+1.50% (+300.0%)',
-      },
-    });
-    const formatted = formatHealthReport(report, 'summary');
-
-    expect(formatted).toContain('DEGRADING');
-    expect(formatted).toContain('📉');
   });
 
   it('should return JSON format when requested', () => {

@@ -40,7 +40,6 @@ function buildTraceSummary(span: OTLPSpan, serviceName: string): TraceSummary {
     const status = getSpanStatus(span);
     const duration = calculateDuration(span);
     const tags = extractRelevantTags(span);
-    //const startTime = nanoToISOString(span.startTimeUnixNano);
     const startTime = nanoToISOString(span.startTimeUnixNano)
 
     // Extract commonly-needed attributes for top-level access
@@ -110,7 +109,7 @@ function processResourceSpan(
 //   - filterFn: Optional filter function to select specific spans (errors, successful, etc.)
 // Returns: Object with metadata (traces searched, traces found) and array of trace summaries
 function extractTraceSummary(
-    data: JaegerOTLPResponse, 
+    data: JaegerOTLPResponse,
     limit: number,
     filterFn?: (span: OTLPSpan) => boolean
 ): ExtractedTraces {
