@@ -10,7 +10,6 @@ resource "aws_security_group" "opensearch" {
 
 resource "aws_vpc_security_group_ingress_rule" "opensearch" {
   security_group_id = aws_security_group.opensearch.id
-
   referenced_security_group_id = aws_security_group.collector.id
   from_port   = 9200
   ip_protocol = "tcp"
@@ -105,7 +104,7 @@ resource "aws_ecs_service" "rvr_opensearch" {
   }
 
   network_configuration {
-    assign_public_ip = true
+    assign_public_ip = false
     security_groups = [
       aws_security_group.tls_out.id,
       aws_security_group.opensearch.id
