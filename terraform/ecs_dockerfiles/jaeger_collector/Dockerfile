@@ -1,4 +1,4 @@
-FROM jaegertracing/jaeger:2.11.0
+FROM --platform=linux/amd64 jaegertracing/jaeger:2.11.0
 
 EXPOSE 4317
 EXPOSE 4318
