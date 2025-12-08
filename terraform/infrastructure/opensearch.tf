@@ -11,7 +11,7 @@ resource "aws_security_group" "opensearch" {
 resource "aws_vpc_security_group_ingress_rule" "opensearch" {
   security_group_id = aws_security_group.opensearch.id
 
-  cidr_ipv4   = "0.0.0.0/0"
+  referenced_security_group_id = aws_security_group.collector.id
   from_port   = 9200
   ip_protocol = "tcp"
   to_port     = 9200
@@ -110,7 +110,7 @@ resource "aws_ecs_service" "rvr_opensearch" {
       aws_security_group.tls_out.id,
       aws_security_group.opensearch.id
     ]
-    subnets = [var.PUBLIC_SUBNET_ID_1]
+    subnets = [var.PRIVATE_SUBNET_ID]
   }
 
   service_connect_configuration {
