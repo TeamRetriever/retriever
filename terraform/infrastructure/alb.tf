@@ -20,8 +20,8 @@ resource "aws_security_group" "alb-sg" {
 
 # TODO add ingress/egress rules for:
 # Port 3000 for the MCP
-# Port 16686 for Jaeger Query
 
+# ingress - what can query the ALB?
 resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
   security_group_id = aws_security_group.alb-sg.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -38,6 +38,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_http_ipv4" {
   to_port           = 80
 }
 
+# egress - who can the ALB query?
 resource "aws_vpc_security_group_egress_rule" "allow_tls_ipv4" {
   security_group_id = aws_security_group.alb-sg.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -52,6 +53,33 @@ resource "aws_vpc_security_group_egress_rule" "allow_http_ipv4" {
   from_port         = 80
   ip_protocol       = "tcp"
   to_port           = 80
+}
+
+# access Query UI
+resource "aws_vpc_security_group_egress_rule" "alb_to_query" {
+  security_group_id            = aws_security_group.alb-sg.id
+  referenced_security_group_id = aws_security_group.query.id
+  from_port                    = 16686
+  ip_protocol                  = "tcp"
+  to_port                      = 16686
+}
+
+# access Query health check
+resource "aws_vpc_security_group_egress_rule" "alb_to_query_health" {
+  security_group_id            = aws_security_group.alb-sg.id
+  referenced_security_group_id = aws_security_group.query.id
+  from_port                    = 16687
+  ip_protocol                  = "tcp"
+  to_port                      = 16687
+}
+
+# query Prometheus UI
+resource "aws_vpc_security_group_egress_rule" "alb_to_prometheus" {
+  security_group_id            = aws_security_group.alb-sg.id
+  referenced_security_group_id = aws_security_group.prometheus.id
+  from_port                    = 9090
+  ip_protocol                  = "tcp"
+  to_port                      = 9090
 }
 
 resource "aws_lb" "public-endpoint" {

@@ -1,7 +1,7 @@
 resource "aws_security_group" "prometheus" {
-  name = "prometheus"
+  name        = "prometheus"
   description = "Prometheus: scrapes collector metrics, serves query API to Query service and MCP"
-  vpc_id = var.VPC_ID
+  vpc_id      = var.VPC_ID
   tags = {
     Name = "prometheus"
   }
