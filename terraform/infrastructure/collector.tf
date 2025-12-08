@@ -7,7 +7,7 @@ resource "aws_security_group" "collector" {
   }
 }
 
-# ingress
+# ingress - who can query the Collector?
 resource "aws_vpc_security_group_ingress_rule" "collector_grpc" {
   security_group_id = aws_security_group.collector.id
   # referenced_security_group_id = aws_security_group.user_application
@@ -33,7 +33,15 @@ resource "aws_vpc_security_group_ingress_rule" "collector_health_check" {
   to_port           = 13133
 }
 
-# egress
+resource "aws_vpc_security_group_ingress_rule" "collector_from_prometheus" {
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.collector.id
+  referenced_security_group_id = aws_security_group.prometheus.id
+  from_port = 8889
+  to_port = 8889
+}
+
+# egress - who can the collector reach?
 resource "aws_vpc_security_group_egress_rule" "collector_to_opensearch" {
   security_group_id = aws_security_group.collector.id
   referenced_security_group_id = aws_security_group.opensearch.id
