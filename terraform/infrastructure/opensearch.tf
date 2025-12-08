@@ -8,6 +8,8 @@ resource "aws_security_group" "opensearch" {
   }
 }
 
+# ingress
+# receives traffic for posting trace data from the collector
 resource "aws_vpc_security_group_ingress_rule" "opensearch" {
   security_group_id = aws_security_group.opensearch.id
   referenced_security_group_id = aws_security_group.collector.id
@@ -15,6 +17,8 @@ resource "aws_vpc_security_group_ingress_rule" "opensearch" {
   ip_protocol = "tcp"
   to_port     = 9200
 }
+
+# receives traffic from Query to query and populate the UI
 
 resource "aws_ecs_task_definition" "opensearch" {
   family                   = "rvr_opensearch"
