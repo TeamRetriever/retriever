@@ -1,7 +1,7 @@
 resource "aws_security_group" "query" {
-  name = "query"
+  name        = "query"
   description = "Exposed publicly via the ALB, Accepts traffic from an LLM client via the MCP, provides the UI, and facilitates prometheus."
-  vpc_id = var.VPC_ID
+  vpc_id      = var.VPC_ID
   tags = {
     Name = "query"
   }
@@ -30,19 +30,19 @@ resource "aws_vpc_security_group_ingress_rule" "query_health_check" {
 # egress - who can Query reach?
 # requests trace data from Opensearch (to get traces)
 resource "aws_vpc_security_group_egress_rule" "query_to_opensearch" {
-  ip_protocol       = "tcp"
-  security_group_id = aws_security_group.query.id
+  ip_protocol                  = "tcp"
+  security_group_id            = aws_security_group.query.id
   referenced_security_group_id = aws_security_group.opensearch.id
-  from_port = 9200
-  to_port = 9200
+  from_port                    = 9200
+  to_port                      = 9200
 }
 # requests spanmetrics from Prometheus (to get metrics in the monitor tab)
 resource "aws_vpc_security_group_egress_rule" "query_to_prometheus" {
-  ip_protocol       = "tcp"
-  security_group_id = aws_security_group.query.id
+  ip_protocol                  = "tcp"
+  security_group_id            = aws_security_group.query.id
   referenced_security_group_id = aws_security_group.prometheus.id
-  from_port = 9090
-  to_port = 9090
+  from_port                    = 9090
+  to_port                      = 9090
 }
 
 # task definition
