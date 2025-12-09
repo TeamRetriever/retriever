@@ -14,6 +14,6 @@ EXPOSE 13133
 # Prometheus scrape
 EXPOSE 8889
 
-COPY config.yml ./etc
+COPY config.yml /etc/jaeger/config.yml
 
-CMD ["--config", "./etc/config.yml"]
+CMD ["--config", "/etc/jaeger/config.yml"]
