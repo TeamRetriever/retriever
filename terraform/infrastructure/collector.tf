@@ -7,14 +7,14 @@ resource "aws_security_group" "collector" {
   }
 }
 
-# ingress
+# ingress - who can query the Collector?
 resource "aws_vpc_security_group_ingress_rule" "collector_grpc" {
   security_group_id = aws_security_group.collector.id
   # referenced_security_group_id = aws_security_group.user_application
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 4317
-  ip_protocol       = "tcp"
-  to_port           = 4317
+  cidr_ipv4   = "0.0.0.0/0"
+  from_port   = 4317
+  ip_protocol = "tcp"
+  to_port     = 4317
 }
 
 resource "aws_vpc_security_group_ingress_rule" "collector_http" {
@@ -33,24 +33,32 @@ resource "aws_vpc_security_group_ingress_rule" "collector_health_check" {
   to_port           = 13133
 }
 
-# egress
+resource "aws_vpc_security_group_ingress_rule" "collector_from_prometheus" {
+  ip_protocol                  = "tcp"
+  security_group_id            = aws_security_group.collector.id
+  referenced_security_group_id = aws_security_group.prometheus.id
+  from_port                    = 8889
+  to_port                      = 8889
+}
+
+# egress - who can the collector reach?
 resource "aws_vpc_security_group_egress_rule" "collector_to_opensearch" {
-  security_group_id = aws_security_group.collector.id
+  security_group_id            = aws_security_group.collector.id
   referenced_security_group_id = aws_security_group.opensearch.id
-  from_port         = 9200
-  ip_protocol       = "tcp"
-  to_port           = 9200
+  from_port                    = 9200
+  ip_protocol                  = "tcp"
+  to_port                      = 9200
 }
 
 resource "aws_ecs_task_definition" "collector" {
-  family                = "rvr_collector"
+  family                   = "rvr_collector"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 1024
   memory                   = 2048
   execution_role_arn       = data.aws_iam_role.ecs_task.arn
 
-  container_definitions    = <<TASK_DEFINITION
+  container_definitions = <<TASK_DEFINITION
 [
  {
       "cpu": 1024,
