@@ -10,18 +10,18 @@ resource "aws_security_group" "hotrod" {
 
 resource "aws_vpc_security_group_ingress_rule" "hotrod" {
   security_group_id = aws_security_group.hotrod.id
-  cidr_ipv4 = "0.0.0.0/0"
-  from_port   = 8080
-  ip_protocol = "tcp"
-  to_port     = 8080
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 8080
+  ip_protocol       = "tcp"
+  to_port           = 8080
 }
 
 resource "aws_vpc_security_group_egress_rule" "hotrod" {
   security_group_id = aws_security_group.hotrod.id
-  cidr_ipv4   = "0.0.0.0/0"
-  from_port   = 443
-  ip_protocol = "tcp"
-  to_port     = 443
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 443
+  ip_protocol       = "tcp"
+  to_port           = 443
 }
 
 resource "aws_ecs_task_definition" "hotrod" {
@@ -102,5 +102,11 @@ resource "aws_ecs_service" "rvr_hotrod" {
       aws_security_group.hotrod.id
     ]
     subnets = [aws_subnet.private-a.id]
+  }
+
+  load_balancer {
+    container_name   = "hotrod"
+    container_port   = 8080
+    target_group_arn = aws_lb_target_group.demo-app.arn
   }
 }
