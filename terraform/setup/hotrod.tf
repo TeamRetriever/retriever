@@ -8,7 +8,7 @@ resource "aws_security_group" "hotrod" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "hotrod" {
+resource "aws_vpc_security_group_ingress_rule" "hotrod-ui" {
   security_group_id = aws_security_group.hotrod.id
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 8080
@@ -16,12 +16,20 @@ resource "aws_vpc_security_group_ingress_rule" "hotrod" {
   to_port           = 8080
 }
 
-resource "aws_vpc_security_group_egress_rule" "hotrod" {
+resource "aws_vpc_security_group_egress_rule" "hotrod-get-dockerhub-image" {
   security_group_id = aws_security_group.hotrod.id
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   ip_protocol       = "tcp"
   to_port           = 443
+}
+
+resource "aws_vpc_security_group_egress_rule" "hotrod-send-otel-data" {
+  security_group_id = aws_security_group.hotrod.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 4318
+  ip_protocol       = "tcp"
+  to_port           = 4318
 }
 
 resource "aws_ecs_task_definition" "hotrod" {
