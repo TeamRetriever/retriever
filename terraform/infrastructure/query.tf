@@ -16,7 +16,7 @@ resource "aws_vpc_security_group_ingress_rule" "query_from_alb" {
   ip_protocol                  = "tcp"
   to_port                      = 16686
 }
-# the LLM via MCP (is this the same endpoint?)
+# the LLM via MCP
 
 # health check endpoint
 resource "aws_vpc_security_group_ingress_rule" "query_health_check" {
@@ -233,5 +233,8 @@ resource "aws_ecs_service" "query" {
     container_port   = 16686
   }
 
-  depends_on = [aws_lb_listener_rule.query]
+  depends_on = [
+    aws_lb_listener_rule.query,
+    aws_ecs_service.rvr_opensearch
+  ]
 }
