@@ -1,8 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { listServicesTool, getServiceHealthTool,  getTracesTool } from "./tools/index";
-
+import { listServicesTool, getServiceHealthTool, getTracesTool } from "./tools";
 
 // initialize the server
 const server = new McpServer({
@@ -19,7 +18,7 @@ server.registerTool(
     inputSchema: listServicesTool.inputSchema,
     outputSchema: listServicesTool.outputSchema,
   },
-  listServicesTool.handler // handler is in place of tool functionality before. This handler is a property where the respective tool function lives 
+  listServicesTool.handler, // handler is in place of tool functionality before. This handler is a property where the respective tool function lives
 );
 
 server.registerTool(
@@ -30,23 +29,28 @@ server.registerTool(
     inputSchema: getServiceHealthTool.inputSchema,
     outputSchema: getServiceHealthTool.outputSchema,
   },
-  getServiceHealthTool.handler
+  getServiceHealthTool.handler,
 );
 
 server.registerTool(
-  getTracesTool.name, 
-{
-  title: "Get Trace Data",
-  description: getTracesTool.description, 
-  inputSchema: getTracesTool.inputSchema, 
-  outputSchema: getTracesTool.outputSchema
-}, 
-getTracesTool.handler
-)
+  getTracesTool.name,
+  {
+    title: "Get Trace Data",
+    description: getTracesTool.description,
+    inputSchema: getTracesTool.inputSchema,
+    outputSchema: getTracesTool.outputSchema,
+  },
+  getTracesTool.handler,
+);
 
 // HTTP transport
 const app = express();
 app.use(express.json());
+
+// Health check endpoint for ALB
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "healthy" });
+});
 
 app.post("/mcp", async (request, response) => {
   try {

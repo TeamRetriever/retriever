@@ -1,10 +1,10 @@
 service:
-  extensions: [jaeger_query, jaeger_storage, healthcheckv2] # jaeger_storage may be needed to specify location of db
+  extensions: [ jaeger_query, jaeger_storage, healthcheckv2 ] # jaeger_storage may be needed to specify location of db
   pipelines:
     traces:
-      receivers: [nop]
-      processors: [batch]
-      exporters: [nop]
+      receivers: [ nop ]
+      processors: [ batch ]
+      exporters: [ nop ]
   # telemetry:
   #   resource:
   #     service.name: jaeger-query
@@ -23,12 +23,13 @@ extensions:
   healthcheckv2:
     use_v2: true
     http:
+      endpoint: 0.0.0.0:16687
 
   jaeger_query:
     storage:
       traces: opensearch_storage
     ui:
-      config_file: /etc/config-ui.json
+      config_file: /etc/jaeger/config-ui.json
 
   jaeger_storage: # manages storage backend. It can perform actions like handles connection pooling, retries, health checks, it can also define multiple backends. 
     backends:
