@@ -73,7 +73,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_query_health" {
   to_port                      = 16687
 }
 
-# access Prometheus UI
+# query Prometheus UI
 resource "aws_vpc_security_group_egress_rule" "alb_to_prometheus" {
   security_group_id            = aws_security_group.alb-sg.id
   referenced_security_group_id = aws_security_group.prometheus.id

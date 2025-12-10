@@ -8,9 +8,9 @@ resource "aws_security_group" "opensearch" {
   }
 }
 
-# ingress
+# ingress - who can query the opensearch database
 # receives traffic for posting trace data from the collector
-resource "aws_vpc_security_group_ingress_rule" "opensearch" {
+resource "aws_vpc_security_group_ingress_rule" "opensearch_from_collector" {
   security_group_id            = aws_security_group.opensearch.id
   referenced_security_group_id = aws_security_group.collector.id
   from_port                    = 9200
@@ -18,8 +18,15 @@ resource "aws_vpc_security_group_ingress_rule" "opensearch" {
   to_port                      = 9200
 }
 
-# receives traffic from Query to query and populate the UI
+resource "aws_vpc_security_group_ingress_rule" "opensearch_from_query" {
+  security_group_id            = aws_security_group.opensearch.id
+  referenced_security_group_id = aws_security_group.query.id
+  from_port                    = 9200
+  ip_protocol                  = "tcp"
+  to_port                      = 9200
+}
 
+# receives traffic from Query to query and populate the UI
 resource "aws_ecs_task_definition" "opensearch" {
   family                   = "rvr_opensearch"
   requires_compatibilities = ["FARGATE"]
