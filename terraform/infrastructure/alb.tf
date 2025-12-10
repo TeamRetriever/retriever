@@ -82,6 +82,15 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_prometheus" {
   to_port                      = 9090
 }
 
+# access MCP
+resource "aws_vpc_security_group_egress_rule" "alb_to_mcp" {
+  security_group_id            = aws_security_group.alb-sg.id
+  referenced_security_group_id = aws_security_group.mcp.id
+  from_port                    = 3000
+  ip_protocol                  = "tcp"
+  to_port                      = 3000
+}
+
 resource "aws_lb" "public-endpoint" {
   name               = "rvr-public-endpoint"
   internal           = false
