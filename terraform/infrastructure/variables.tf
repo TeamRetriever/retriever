@@ -21,3 +21,7 @@ variable "USER_CERTIFICATE_PRIVATE_KEY_FILE" {
 variable "USER_CERTIFICATE_BODY_FILE" {
   type = string
 }
+
+variable "USER_CERTIFICATE_CHAIN_FILE" {
+  type = string
+}
