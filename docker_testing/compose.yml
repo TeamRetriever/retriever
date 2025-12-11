@@ -119,6 +119,7 @@ services:
     build: ../mcp
     platform: linux/amd64
     environment:
+      - JWT_SECRET=${JWT_SECRET}
       - URL=http://query:16686
     ports:
       - "3000:3000"  # MCP on port 3000 for Cursor

@@ -1,9 +1,16 @@
-# syntax=docker/dockerfile:1
+FROM node:20-alpine
 
-FROM node:lts-alpine
-WORKDIR /
-COPY . .
-RUN npm install
-RUN npm run build
-CMD ["npm", "start"]
+WORKDIR /app
+
+
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY authentication/ ./authentication/
+COPY src/ ./src/
+
+
+RUN npm ci && npm run build
+
 EXPOSE 3000
+
+CMD ["node", "build/src/server.js"]

@@ -1,7 +1,17 @@
+import 'dotenv/config'; 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { listServicesTool, getServiceHealthTool, getTracesTool } from "./tools";
+import {validateJWT} from "../authentication/src/verify_jwt"
+
+
+import { listServicesTool, getServiceHealthTool,  getTracesTool } from "./tools/index";
+
+
+
+
+
+
 
 // initialize the server
 const server = new McpServer({
@@ -18,7 +28,7 @@ server.registerTool(
     inputSchema: listServicesTool.inputSchema,
     outputSchema: listServicesTool.outputSchema,
   },
-  listServicesTool.handler, // handler is in place of tool functionality before. This handler is a property where the respective tool function lives
+  listServicesTool.handler // handler is in place of tool functionality before. This handler is a property where the respective tool function lives 
 );
 
 server.registerTool(
@@ -29,30 +39,46 @@ server.registerTool(
     inputSchema: getServiceHealthTool.inputSchema,
     outputSchema: getServiceHealthTool.outputSchema,
   },
-  getServiceHealthTool.handler,
+  getServiceHealthTool.handler
 );
 
 server.registerTool(
-  getTracesTool.name,
-  {
-    title: "Get Trace Data",
-    description: getTracesTool.description,
-    inputSchema: getTracesTool.inputSchema,
-    outputSchema: getTracesTool.outputSchema,
-  },
-  getTracesTool.handler,
-);
+  getTracesTool.name, 
+{
+  title: "Get Trace Data",
+  description: getTracesTool.description, 
+  inputSchema: getTracesTool.inputSchema, 
+  outputSchema: getTracesTool.outputSchema
+}, 
+getTracesTool.handler
+)
 
 // HTTP transport
 const app = express();
 app.use(express.json());
 
-// Health check endpoint for ALB
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "healthy" });
+app.get('/health', (_req, res) => {
+  res.json({ status: 'healthy' });
 });
 
-app.post("/mcp", async (request, response) => {
+
+
+app.get("/mcp", validateJWT, async (request, response) => {
+  console.log(' SSE connection authenticated:', request.jwtPayload?.sub);
+  
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+  
+  response.on("close", () => transport.close());
+  await server.connect(transport);
+  await transport.handleRequest(request, response, request.body);
+});
+
+
+
+app.post("/mcp", validateJWT, async (request, response) => {
   try {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -74,6 +100,7 @@ const port = parseInt(process.env.PORT || "3000");
 app
   .listen(port, () => {
     console.log(`Server started on port ${port}/mcp`);
+    console.log("JWT authentication enabled. ")
   })
   .on("error", (err) => {
     console.error("server error:", err);

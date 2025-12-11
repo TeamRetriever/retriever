@@ -1,0 +1,24 @@
+{
+  "name": "retriever-authentication",
+  "version": "1.0.0",
+  "description": "JWT authentication for Retriever MCP server",
+  "license": "ISC",
+  "author": "zane lee",
+  "type": "commonjs",
+  "main": "dist/server.js",
+  "scripts": {
+    "generate-token": "ts-node src/generate-jwt.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
