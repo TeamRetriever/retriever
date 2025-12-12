@@ -54,9 +54,24 @@ resource "aws_ecs_task_definition" "mcp" {
         "value": "http://query_ui.retriever:16686"
       }
     ],
+    "secrets": [
+      {
+        "name": "JWT_SECRET",
+        "valueFrom": "${data.aws_secretsmanager_secret.jwt_secret.arn}"
+      }
+    ],
     "environmentFiles": [],
     "essential": true,
     "image": "runretriever/mcp-server:latest",
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/rvr_mcp",
+        "awslogs-create-group": "true",
+        "awslogs-region": "${local.region}",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
     "mountPoints": [],
     "name": "mcp",
     "portMappings": [

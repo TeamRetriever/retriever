@@ -1,18 +1,27 @@
-FROM node:lts-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+
+COPY mcp/package*.json ./
+
 
 RUN npm ci
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY mcp/authentication/ ./authentication/
+
+
+COPY mcp/src/ ./src/
+COPY mcp/tsconfig.json ./
+
 
 RUN npm run build
 
+
 RUN npm prune --production
+
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+
+CMD ["node", "build/src/server.js"]
