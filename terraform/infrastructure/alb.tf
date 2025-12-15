@@ -139,3 +139,93 @@ resource "aws_lb_listener" "public-https" {
     target_group_arn = aws_lb_target_group.query.arn
   }
 }
+
+# ALB listener rule for Prometheus HTTPS redirect
+resource "aws_lb_listener_rule" "prometheus_https_redirect" {
+  listener_arn = aws_lb_listener.public-https.arn
+  priority     = 99
+
+  action {
+    type = "redirect"
+    redirect {
+      path        = "/prometheus/query"
+      status_code = "HTTP_302"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/prometheus", "/prometheus/"]
+    }
+  }
+
+  tags = {
+    Name = "prometheus-https-redirect-rule"
+  }
+}
+
+# ALB listener rule for Prometheus HTTPS forward
+resource "aws_lb_listener_rule" "prometheus_https" {
+  listener_arn = aws_lb_listener.public-https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.prometheus.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/prometheus/*"]
+    }
+  }
+
+  tags = {
+    Name = "prometheus-https-rule"
+  }
+}
+
+# ALB listener rule for Prometheus HTTP redirect
+resource "aws_lb_listener_rule" "prometheus_http_redirect" {
+  listener_arn = aws_lb_listener.public-http.arn
+  priority     = 99
+
+  action {
+    type = "redirect"
+    redirect {
+      path        = "/prometheus/query"
+      status_code = "HTTP_302"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/prometheus", "/prometheus/"]
+    }
+  }
+
+  tags = {
+    Name = "prometheus-http-redirect-rule"
+  }
+}
+
+# ALB listener rule for Prometheus HTTP forward
+resource "aws_lb_listener_rule" "prometheus_http" {
+  listener_arn = aws_lb_listener.public-http.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.prometheus.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/prometheus/*"]
+    }
+  }
+
+  tags = {
+    Name = "prometheus-http-rule"
+  }
+}
