@@ -147,47 +147,7 @@ resource "aws_lb_target_group" "query" {
   }
 }
 
-# ALB listener rule for HTTPS
-resource "aws_lb_listener_rule" "query" {
-  listener_arn = aws_lb_listener.dummy-https.arn
-  priority     = 100
 
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.query.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/jaeger*"]
-    }
-  }
-
-  tags = {
-    Name = "query-https-rule"
-  }
-}
-
-# ALB listener rule for HTTP (for testing)
-resource "aws_lb_listener_rule" "query_http" {
-  listener_arn = aws_lb_listener.dummy-http.arn
-  priority     = 100
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.query.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/jaeger*"]
-    }
-  }
-
-  tags = {
-    Name = "query-http-rule"
-  }
-}
 
 # ecs service
 resource "aws_ecs_service" "query" {
@@ -242,7 +202,7 @@ resource "aws_ecs_service" "query" {
   }
 
   depends_on = [
-    aws_lb_listener_rule.query,
+    aws_lb_listener.public-https,
     aws_ecs_service.rvr_opensearch
   ]
 }

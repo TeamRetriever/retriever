@@ -105,35 +105,37 @@ resource "aws_lb" "public-endpoint" {
   }
 }
 
-resource "aws_lb_listener" "dummy-http" {
+# Rename from dummy-http to public-http
+moved {
+  from = aws_lb_listener.dummy-http
+  to   = aws_lb_listener.public-http
+}
+
+resource "aws_lb_listener" "public-http" {
   load_balancer_arn = aws_lb.public-endpoint.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "successfully connected to alb over http"
-      status_code  = "200"
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.query.arn
   }
 }
 
-resource "aws_lb_listener" "dummy-https" {
+# Rename from dummy-https to public-https
+moved {
+  from = aws_lb_listener.dummy-https
+  to   = aws_lb_listener.public-https
+}
+
+resource "aws_lb_listener" "public-https" {
   load_balancer_arn = aws_lb.public-endpoint.arn
   port              = "443"
   protocol          = "HTTPS"
   certificate_arn   = aws_acm_certificate.user-cert.arn
 
   default_action {
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "successfully connected to alb over https"
-      status_code  = "200"
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.query.arn
   }
 }

@@ -125,7 +125,7 @@ resource "aws_lb_target_group" "mcp" {
 
 # ALB listener rule for HTTPS
 resource "aws_lb_listener_rule" "mcp" {
-  listener_arn = aws_lb_listener.dummy-https.arn
+  listener_arn = aws_lb_listener.public-https.arn
   priority     = 101
 
   action {
