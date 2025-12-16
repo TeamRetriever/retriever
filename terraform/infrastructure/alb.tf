@@ -83,6 +83,15 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_prometheus" {
   to_port                      = 9090
 }
 
+# query Alertmanager UI
+resource "aws_vpc_security_group_egress_rule" "alb_to_alertmanager" {
+  security_group_id            = aws_security_group.alb-sg.id
+  referenced_security_group_id = aws_security_group.alertmanager.id
+  from_port                    = 9093
+  ip_protocol                  = "tcp"
+  to_port                      = 9093
+}
+
 # access MCP
 resource "aws_vpc_security_group_egress_rule" "alb_to_mcp" {
   security_group_id            = aws_security_group.alb-sg.id
@@ -105,7 +114,7 @@ resource "aws_lb" "public-endpoint" {
   }
 }
 
-# Rename from dummy-http to public-http
+# Rename from dummy-http to public-httpho
 moved {
   from = aws_lb_listener.dummy-http
   to   = aws_lb_listener.public-http
@@ -227,5 +236,95 @@ resource "aws_lb_listener_rule" "prometheus_http" {
 
   tags = {
     Name = "prometheus-http-rule"
+  }
+}
+
+# ALB listener rule for Alertmanager HTTPS redirect
+resource "aws_lb_listener_rule" "alertmanager_https_redirect" {
+  listener_arn = aws_lb_listener.public-https.arn
+  priority     = 102
+
+  action {
+    type = "redirect"
+    redirect {
+      path        = "/alertmanager/"
+      status_code = "HTTP_302"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/alertmanager"]
+    }
+  }
+
+  tags = {
+    Name = "alertmanager-https-redirect-rule"
+  }
+}
+
+# ALB listener rule for Alertmanager HTTPS forward
+resource "aws_lb_listener_rule" "alertmanager_https" {
+  listener_arn = aws_lb_listener.public-https.arn
+  priority     = 103
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.alertmanager.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/alertmanager/", "/alertmanager/*"]
+    }
+  }
+
+  tags = {
+    Name = "alertmanager-https-rule"
+  }
+}
+
+# ALB listener rule for Alertmanager HTTP redirect
+resource "aws_lb_listener_rule" "alertmanager_http_redirect" {
+  listener_arn = aws_lb_listener.public-http.arn
+  priority     = 102
+
+  action {
+    type = "redirect"
+    redirect {
+      path        = "/alertmanager/"
+      status_code = "HTTP_302"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/alertmanager"]
+    }
+  }
+
+  tags = {
+    Name = "alertmanager-http-redirect-rule"
+  }
+}
+
+# ALB listener rule for Alertmanager HTTP forward
+resource "aws_lb_listener_rule" "alertmanager_http" {
+  listener_arn = aws_lb_listener.public-http.arn
+  priority     = 103
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.alertmanager.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/alertmanager/", "/alertmanager/*"]
+    }
+  }
+
+  tags = {
+    Name = "alertmanager-http-rule"
   }
 }

@@ -45,6 +45,15 @@ resource "aws_vpc_security_group_egress_rule" "prometheus_to_collector" {
   to_port                      = 8889
 }
 
+# Prometheus sends alerts to Alertmanager
+resource "aws_vpc_security_group_egress_rule" "prometheus_to_alertmanager" {
+  security_group_id            = aws_security_group.prometheus.id
+  referenced_security_group_id = aws_security_group.alertmanager.id
+  from_port                    = 9093
+  ip_protocol                  = "tcp"
+  to_port                      = 9093
+}
+
 # task definition
 resource "aws_ecs_task_definition" "prometheus" {
   family                   = "rvr_prometheus"

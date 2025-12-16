@@ -5,8 +5,9 @@ global:
 # Alerting configuration
 alerting:
   alertmanagers:
-    - static_configs:
-        - targets: ['alertmanager.retriever:9093']
+    - path_prefix: /alertmanager
+      static_configs:
+        - targets: ['alertmanager_ui.retriever:9093']
 
 # Rule files
 rule_files:
