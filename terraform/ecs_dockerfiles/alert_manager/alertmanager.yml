@@ -1,7 +1,6 @@
-global: 
-  resolve_timeout: 5m # this lets alertmanager to wait this long if Prometheus stops sending alerts before marking it as resolved. Having it be a bit longer is considered good to prevent premature resolutions . 
-  # 5m is considered a standard time. 1m would usually be considered aggressive. 
-  slack_api_url_file: /run/secrets/slack_webhook
+global:
+  resolve_timeout: 5m # this lets alertmanager to wait this long if Prometheus stops sending alerts before marking it as resolved. Having it be a bit longer is considered good to prevent premature resolutions .
+  # 5m is considered a standard time. 1m would usually be considered aggressive.
   
 
 route: # this separates alerts by the service and the name of the alert. 
@@ -11,10 +10,11 @@ route: # this separates alerts by the service and the name of the alert.
   repeat_interval: 12h  # if any alerts are still firing a notification will be resent after this time frame. 
   receiver: 'slack-alerts'
 
-receivers: 
-  - name: 'slack-alerts' 
+receivers:
+  - name: 'slack-alerts'
     slack_configs:
-      - channel: /run/secrets/slack_channel  # Read channel from secret file
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '${SLACK_CHANNEL}'
         icon_emoji: ':rotating_light:'
         title: '{{ if eq .Status "firing" }}🚨{{ else }}✅{{ end }} {{ .GroupLabels.alertname }}'
         color: |- # |- is yaml syntax for multiline string that strips new lines. 
@@ -26,7 +26,7 @@ receivers:
           *Service:* {{ .Labels.service_name }}
           *Description:* {{ .Annotations.description }}
           *Status:* {{ .Status }}
-          *View in Prometheus:* http://localhost:9090/alerts
-          *View in Jaeger:* http://localhost:16686
+          *View in Prometheus:* https://rvr.philipkn.app/prometheus/alerts
+          *View in Jaeger:* https://rvr.philipkn.app
           {{ end }}
         send_resolved: true  # Send notification when alert is resolved

@@ -52,6 +52,10 @@ resource "aws_ecs_task_definition" "mcp" {
       {
         "name": "URL",
         "value": "http://query_ui.retriever:16686"
+      }, 
+      {
+        "name": "PROMETHEUS_URL",
+        "value": "http://prometheus_ui.retriever:9090/prometheus"
       }
     ],
     "secrets": [

@@ -17,7 +17,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "off"
+      "defaultVariant": "on"
     },
     "f2a9d3e7": {
       "description": "Product Service - Add 3-5 second delay to all product API requests",
