@@ -5,9 +5,9 @@ import { join } from 'node:path';
 import { getStringParam, JWTPayload, isJWTPayload } from '../types/index'
 
 
-const JWT_SECRET = process.env.JWT_SECRET!; // We validate this exists in server.ts
-const COOKIE_NAME = 'retriever_auth';
-const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7');
+export const JWT_SECRET = process.env.JWT_SECRET!; // We validate this exists in server.ts
+export const COOKIE_NAME = 'retriever_auth';
+export const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7');
 
 
 // this will load the HTML 
