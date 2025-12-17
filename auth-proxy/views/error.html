@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Error - Retriever</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 1rem;
+    }
+
+    .error-container {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+    }
+
+    .icon {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      color: #c53030;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    .error-message {
+      color: #4a5568;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 0.875rem 2rem;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .help-text {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e2e8f0;
+      color: #718096;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="icon">⚠️</div>
+    <h1>{{errorTitle}}</h1>
+    <p class="error-message">{{errorMessage}}</p>
+    <a href="/auth" class="button">← Back to Login</a>
+    <p class="help-text">
+      Need help? Run <code>retriever token show</code> to get your current token,<br>
+      or <code>retriever token generate</code> to create a new one.
+    </p>
+  </div>
+</body>
+</html>
