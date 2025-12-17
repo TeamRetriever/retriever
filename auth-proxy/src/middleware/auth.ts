@@ -3,11 +3,11 @@ import jwt from 'jsonwebtoken'
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getStringParam, JWTPayload, isJWTPayload } from '../types/index'
-import { verify } from 'node:crypto';
+
 
 const JWT_SECRET = process.env.JWT_SECRET!; // We validate this exists in server.ts
 const COOKIE_NAME = 'retriever_auth';
-const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '30');
+const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7');
 
 
 // this will load the HTML 
@@ -22,7 +22,7 @@ const errorHTML = readFileSync(
     'utf-8'
 ); 
 
-// here is where we require for the JWT. 
+
 
 
 
