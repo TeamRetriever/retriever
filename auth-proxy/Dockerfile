@@ -24,7 +24,7 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 
 
-COPY src/views ./dist/views
+COPY views ./views
 
 USER node
 

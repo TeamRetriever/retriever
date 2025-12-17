@@ -10,15 +10,15 @@ export const COOKIE_NAME = 'retriever_auth';
 export const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7');
 
 
-// this will load the HTML 
+// this will load the HTML
 
 const loginHTML = readFileSync(
-    join(__dirname, '../views/login.html'), 
+    join(__dirname, '../../views/login.html'),
     'utf-8'
-); 
+);
 
 const errorHTML = readFileSync(
-    join(__dirname, '../views/error.html'), 
+    join(__dirname, '../../views/error.html'),
     'utf-8'
 ); 
 
@@ -106,11 +106,12 @@ export function handleLogin(req: Request, res: Response): void {
                 errorDetails = err.message; 
             }
         } 
-        console.error('Token validation failed, err'); 
+        console.error('Token validation failed, err');
 
         const html = errorHTML
         .replace('{{ERROR_MESSAGE}}', errorMessage)
-        .replace('{{ERROR_DETAILS}}', errorDetails); 
+        .replace('{{ERROR_DETAILS}}', errorDetails);
+        res.status(400).send(html);
     }
 
  

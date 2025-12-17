@@ -35,10 +35,10 @@ export function isJWTPayload (decoded: unknown): decoded is JWTPayload {
    }
 
    return (
-    typeof decoded.sub === 'string' && 
-    typeof decoded.iss === 'string' && 
-    typeof decoded.aud === 'string' && 
-    typeof decoded.exp === 'string' && 
+    typeof decoded.sub === 'string' &&
+    typeof decoded.iss === 'string' &&
+    typeof decoded.aud === 'string' &&
+    typeof decoded.exp === 'number' &&
     typeof decoded.iat === 'number'
    ); 
 }

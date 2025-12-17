@@ -5,9 +5,9 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import {requireAuth, showLoginForm, handleLogin, JWT_SECRET, COOKIE_MAX_AGE_DAYS} from './middleware'
 
 
-const JAEGER_URL = process.env.JAEGER_URL || 'http://query.retriever:16686';
-const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://prometheus.retriever:9090';
-const ALERTMANAGER_URL = process.env.ALERTMANAGER_URL || 'http://alertmanager.retriever:9093';
+const JAEGER_URL = process.env.JAEGER_URL || 'http://query_ui.retriever:16686';
+const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://prometheus_ui.retriever:9090';
+const ALERTMANAGER_URL = process.env.ALERTMANAGER_URL || 'http://alertmanager_ui.retriever:9093';
 
 if (!JWT_SECRET) {
     console.error('JWT_SECRET environment variable required')
@@ -39,7 +39,8 @@ app.post('/auth', handleLogin)
 
 
 app.use(
-    '/jaeger', 
+    '/jaeger',
+     requireAuth, 
     createProxyMiddleware({
         target: JAEGER_URL, 
         changeOrigin: true, 
