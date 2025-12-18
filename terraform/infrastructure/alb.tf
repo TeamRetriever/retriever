@@ -56,23 +56,7 @@ resource "aws_vpc_security_group_egress_rule" "allow_http_ipv4" {
   to_port           = 80
 }
 
-# access Query UI
-resource "aws_vpc_security_group_egress_rule" "alb_to_query" {
-  security_group_id            = aws_security_group.alb-sg.id
-  referenced_security_group_id = aws_security_group.query.id
-  from_port                    = 16686
-  ip_protocol                  = "tcp"
-  to_port                      = 16686
-}
 
-# access Query health check
-resource "aws_vpc_security_group_egress_rule" "alb_to_query_health" {
-  security_group_id            = aws_security_group.alb-sg.id
-  referenced_security_group_id = aws_security_group.query.id
-  from_port                    = 16687
-  ip_protocol                  = "tcp"
-  to_port                      = 16687
-}
 
 # access auth-proxy
 resource "aws_vpc_security_group_egress_rule" "alb_to_auth_proxy" {
