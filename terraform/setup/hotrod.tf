@@ -16,6 +16,14 @@ resource "aws_vpc_security_group_ingress_rule" "hotrod-ui" {
   to_port           = 8080
 }
 
+resource "aws_vpc_security_group_egress_rule" "hotrod-discover-collector" {
+  security_group_id = aws_security_group.hotrod.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 53
+  ip_protocol       = "tcp"
+  to_port           = 53
+}
+
 resource "aws_vpc_security_group_egress_rule" "hotrod-get-dockerhub-image" {
   security_group_id = aws_security_group.hotrod.id
   cidr_ipv4         = "0.0.0.0/0"
