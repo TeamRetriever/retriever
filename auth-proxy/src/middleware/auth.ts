@@ -1,9 +1,13 @@
-import {Request, Response, NextFunction} from 'express'; 
+import {Request, Response, NextFunction} from 'express';
 import jwt from 'jsonwebtoken'
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { getStringParam, JWTPayload, isJWTPayload } from '../types/index'
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { getStringParam, JWTPayload, isJWTPayload } from '../types/index.js'
 
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export const JWT_SECRET = process.env.JWT_SECRET!; // We validate this exists in server.ts
 export const COOKIE_NAME = 'retriever_auth';

@@ -1,8 +1,8 @@
-import 'dotenv/config'; 
-import express from 'express'; 
+import 'dotenv/config';
+import express from 'express';
 import cookieParser from 'cookie-parser';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import {requireAuth, showLoginForm, handleLogin, JWT_SECRET, COOKIE_MAX_AGE_DAYS} from './middleware'
+import {requireAuth, showLoginForm, handleLogin, JWT_SECRET, COOKIE_MAX_AGE_DAYS} from './middleware/index.js'
 
 
 const JAEGER_URL = process.env.JAEGER_URL || 'http://query_ui.retriever:16686';
