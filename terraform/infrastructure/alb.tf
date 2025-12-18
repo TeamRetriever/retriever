@@ -105,7 +105,7 @@ resource "aws_lb" "public-endpoint" {
   }
 }
 
-# Rename from dummy-http to public-httpho
+# Rename from dummy-http to public-http
 moved {
   from = aws_lb_listener.dummy-http
   to   = aws_lb_listener.public-http
@@ -118,7 +118,7 @@ resource "aws_lb_listener" "public-http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.query.arn
+    target_group_arn = aws_lb_target_group.auth_proxy.arn
   }
 }
 
@@ -136,6 +136,6 @@ resource "aws_lb_listener" "public-https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.query.arn
+    target_group_arn = aws_lb_target_group.auth_proxy.arn
   }
 }
