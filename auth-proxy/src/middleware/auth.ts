@@ -71,27 +71,31 @@ export function showLoginForm(req: Request, res: Response): void {
 
 
 export function handleLogin(req: Request, res: Response): void {
-    const token = getStringParam(req.body.token); 
-    const redirect = getStringParam(req.body.redirect) || '/jaeger'; 
+    const rawToken = getStringParam(req.body.token);
+    // Clean the token: remove all whitespace, newlines, and tabs
+    const token = rawToken ? rawToken.replace(/\s+/g, '') : '';
+    const redirect = getStringParam(req.body.redirect) || '/jaeger';
+
+    console.log('Received token length:', rawToken?.length, 'Cleaned:', token?.length);
 
     if (!token) {
         const html = errorHTML
-        .replace('{{ERROR_MESSAGE}}', 'No token provided')
-        .replace('{{ERROR_DETAILS}}', 'Please place your Retriever access token'); 
-        res.status(400).send(html); 
-        return; 
+        .replace('{{errorTitle}}', 'No token provided')
+        .replace('{{errorMessage}}', 'Please paste your Retriever access token');
+        res.status(400).send(html);
+        return;
     }
 
     try {
         const payload = verifyToken(token, JWT_SECRET); 
         console.log('✓✓✓ Token validated for:', payload.sub)
 
-        // set the http only cookie 
+        // set the http only cookie
         res.cookie(COOKIE_NAME, token, {
-            httpOnly: true, 
-            secure: process.env.NODE_ENV === 'production', 
-            sameSite: 'lax', 
-            maxAge: COOKIE_MAX_AGE_DAYS * 24 * 60 * 60 * 24
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: COOKIE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
         }); 
 
         res.redirect(redirect); 
@@ -109,12 +113,12 @@ export function handleLogin(req: Request, res: Response): void {
             } else {
                 errorDetails = err.message; 
             }
-        } 
-        console.error('Token validation failed, err');
+        }
+        console.error('Token validation failed:', err);
 
         const html = errorHTML
-        .replace('{{ERROR_MESSAGE}}', errorMessage)
-        .replace('{{ERROR_DETAILS}}', errorDetails);
+        .replace('{{errorTitle}}', errorMessage)
+        .replace('{{errorMessage}}', errorDetails);
         res.status(400).send(html);
     }
 
