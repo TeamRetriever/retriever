@@ -58,10 +58,13 @@ app.use(
 app.use(
     '/prometheus',
     requireAuth,
+    (req, _res, next) => {
+      console.log('>>> Prometheus route matched:', req.path, req.url);
+      next();
+    },
     createProxyMiddleware({
       target: PROMETHEUS_URL,
       changeOrigin: true,
-      pathRewrite: { '^/prometheus': '' },
       onError: (err, _req, res) => {
         console.error('Prometheus proxy error:', err);
         if (typeof res.status === 'function') {
@@ -77,7 +80,6 @@ app.use(
     createProxyMiddleware({
       target: ALERTMANAGER_URL,
       changeOrigin: true,
-      pathRewrite: { '^/alertmanager': '' },
       onError: (err, _req, res) => {
         console.error('AlertManager proxy error:', err);
         if (typeof res.status === 'function') {
@@ -92,6 +94,10 @@ app.use(
   app.use(
     '/',
     requireAuth,
+    (req, _res, next) => {
+      console.log('>>> Root route matched:', req.path, req.url);
+      next();
+    },
     createProxyMiddleware({
       target: JAEGER_URL,
       changeOrigin: true,

@@ -26,6 +26,15 @@ resource "aws_vpc_security_group_ingress_rule" "alertmanager_from_alb" {
   to_port                      = 9093
 }
 
+# receives requests from the auth-proxy
+resource "aws_vpc_security_group_ingress_rule" "alertmanager_from_auth_proxy" {
+  security_group_id            = aws_security_group.alertmanager.id
+  referenced_security_group_id = aws_security_group.auth_proxy.id
+  from_port                    = 9093
+  ip_protocol                  = "tcp"
+  to_port                      = 9093
+}
+
 # egress: what can Alertmanager reach?
 # Alertmanager needs to reach external services (Slack) via HTTPS
 # This is handled by the tls_out security group attached to the service
