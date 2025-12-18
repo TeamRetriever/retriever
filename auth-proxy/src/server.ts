@@ -86,7 +86,24 @@ app.use(
       }
     })
   );
-  
+
+  // Default route - Jaeger UI (authenticated)
+  // This catches requests to '/' and proxies them to Jaeger
+  app.use(
+    '/',
+    requireAuth,
+    createProxyMiddleware({
+      target: JAEGER_URL,
+      changeOrigin: true,
+      onError: (err, _req, res) => {
+        console.error('Jaeger proxy error:', err);
+        if (typeof res.status === 'function') {
+          res.status(502).send('Bad Gateway - Could not reach Jaeger');
+        }
+      }
+    })
+  );
+
   // Start server
   const PORT = parseInt(process.env.PORT || '3001');
   
