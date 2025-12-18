@@ -155,6 +155,11 @@ resource "aws_ecs_service" "rvr_collector" {
     subnets = [var.PRIVATE_SUBNET_ID]
   }
 
+  service_registries {
+    container_name = "jaeger_collector_private"
+    registry_arn   = aws_service_discovery_service.collector.arn
+  }
+
   service_connect_configuration {
     enabled   = true
     namespace = aws_service_discovery_http_namespace.main.arn
