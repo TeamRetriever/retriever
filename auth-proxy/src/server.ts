@@ -1,8 +1,8 @@
-import 'dotenv/config'; 
-import express from 'express'; 
+import 'dotenv/config';
+import express from 'express';
 import cookieParser from 'cookie-parser';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import {requireAuth, showLoginForm, handleLogin, JWT_SECRET, COOKIE_MAX_AGE_DAYS} from './middleware'
+import {requireAuth, showLoginForm, handleLogin, JWT_SECRET, COOKIE_MAX_AGE_DAYS} from './middleware/index.js'
 
 
 const JAEGER_URL = process.env.JAEGER_URL || 'http://query_ui.retriever:16686';
@@ -55,13 +55,17 @@ app.use(
 ); 
 
 
+// Redirect /prometheus to /prometheus/query (Prometheus query UI)
+app.get('/prometheus', requireAuth, (_req, res) => {
+  res.redirect('/prometheus/query');
+});
+
 app.use(
     '/prometheus',
     requireAuth,
     createProxyMiddleware({
       target: PROMETHEUS_URL,
       changeOrigin: true,
-      pathRewrite: { '^/prometheus': '' },
       onError: (err, _req, res) => {
         console.error('Prometheus proxy error:', err);
         if (typeof res.status === 'function') {
@@ -77,7 +81,6 @@ app.use(
     createProxyMiddleware({
       target: ALERTMANAGER_URL,
       changeOrigin: true,
-      pathRewrite: { '^/alertmanager': '' },
       onError: (err, _req, res) => {
         console.error('AlertManager proxy error:', err);
         if (typeof res.status === 'function') {
@@ -86,7 +89,28 @@ app.use(
       }
     })
   );
-  
+
+  // Default route - Jaeger UI (authenticated)
+  // This catches requests to '/' and proxies them to Jaeger
+  app.use(
+    '/',
+    requireAuth,
+    (req, _res, next) => {
+      console.log('>>> Root route matched:', req.path, req.url);
+      next();
+    },
+    createProxyMiddleware({
+      target: JAEGER_URL,
+      changeOrigin: true,
+      onError: (err, _req, res) => {
+        console.error('Jaeger proxy error:', err);
+        if (typeof res.status === 'function') {
+          res.status(502).send('Bad Gateway - Could not reach Jaeger');
+        }
+      }
+    })
+  );
+
   // Start server
   const PORT = parseInt(process.env.PORT || '3001');
   

@@ -166,14 +166,15 @@
       {{errorMessage}}
     </div>
 
-    <form method="POST" action="/auth{{redirectQuery}}">
+    <form method="POST" action="/auth">
+      <input type="hidden" name="redirect" value="{{REDIRECT_URL}}">
       <div class="form-group">
         <label for="token">Access Token</label>
-        <input 
-          type="password" 
-          id="token" 
-          name="token" 
-          required 
+        <input
+          type="password"
+          id="token"
+          name="token"
+          required
           placeholder="Paste your RETRIEVER_TOKEN here"
           autocomplete="off"
           autofocus

@@ -1,9 +1,13 @@
-import {Request, Response, NextFunction} from 'express'; 
+import {Request, Response, NextFunction} from 'express';
 import jwt from 'jsonwebtoken'
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { getStringParam, JWTPayload, isJWTPayload } from '../types/index'
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { getStringParam, JWTPayload, isJWTPayload } from '../types/index.js'
 
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export const JWT_SECRET = process.env.JWT_SECRET!; // We validate this exists in server.ts
 export const COOKIE_NAME = 'retriever_auth';
@@ -67,27 +71,31 @@ export function showLoginForm(req: Request, res: Response): void {
 
 
 export function handleLogin(req: Request, res: Response): void {
-    const token = getStringParam(req.body.token); 
-    const redirect = getStringParam(req.body.redirect) || '/jaeger'; 
+    const rawToken = getStringParam(req.body.token);
+    // Clean the token: remove all whitespace, newlines, and tabs
+    const token = rawToken ? rawToken.replace(/\s+/g, '') : '';
+    const redirect = getStringParam(req.body.redirect) || '/jaeger';
+
+    console.log('Received token length:', rawToken?.length, 'Cleaned:', token?.length);
 
     if (!token) {
         const html = errorHTML
-        .replace('{{ERROR_MESSAGE}}', 'No token provided')
-        .replace('{{ERROR_DETAILS}}', 'Please place your Retriever access token'); 
-        res.status(400).send(html); 
-        return; 
+        .replace('{{errorTitle}}', 'No token provided')
+        .replace('{{errorMessage}}', 'Please paste your Retriever access token');
+        res.status(400).send(html);
+        return;
     }
 
     try {
         const payload = verifyToken(token, JWT_SECRET); 
         console.log('✓✓✓ Token validated for:', payload.sub)
 
-        // set the http only cookie 
+        // set the http only cookie
         res.cookie(COOKIE_NAME, token, {
-            httpOnly: true, 
-            secure: process.env.NODE_ENV === 'production', 
-            sameSite: 'lax', 
-            maxAge: COOKIE_MAX_AGE_DAYS * 24 * 60 * 60 * 24
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: COOKIE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
         }); 
 
         res.redirect(redirect); 
@@ -105,12 +113,12 @@ export function handleLogin(req: Request, res: Response): void {
             } else {
                 errorDetails = err.message; 
             }
-        } 
-        console.error('Token validation failed, err');
+        }
+        console.error('Token validation failed:', err);
 
         const html = errorHTML
-        .replace('{{ERROR_MESSAGE}}', errorMessage)
-        .replace('{{ERROR_DETAILS}}', errorDetails);
+        .replace('{{errorTitle}}', errorMessage)
+        .replace('{{errorMessage}}', errorDetails);
         res.status(400).send(html);
     }
 

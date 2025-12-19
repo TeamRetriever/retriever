@@ -1,5 +1,5 @@
-export {JWTPayload, 
-    isJWTPayload, 
-    isExpressResponse, 
+export {JWTPayload,
+    isJWTPayload,
+    isExpressResponse,
     getStringParam
-} from './guards'
+} from './guards.js'
