@@ -175,11 +175,8 @@ resource "aws_ecs_service" "alertmanager" {
     }
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.alertmanager.arn
-    container_name   = "alertmanager"
-    container_port   = 9093
-  }
+  # AlertManager is accessed through auth-proxy, not directly via ALB
+  # No load_balancer block needed
 
   depends_on = [
     aws_lb_listener.public-https,

@@ -188,11 +188,8 @@ resource "aws_ecs_service" "prometheus" {
     }
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.prometheus.arn
-    container_name   = "prometheus"
-    container_port   = 9090
-  }
+  # Prometheus is accessed through auth-proxy, not directly via ALB
+  # No load_balancer block needed
 
   depends_on = [
     aws_lb_listener.public-https,

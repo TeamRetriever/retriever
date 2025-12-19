@@ -195,11 +195,8 @@ resource "aws_ecs_service" "query" {
     }
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.query.arn
-    container_name   = "query"
-    container_port   = 16686
-  }
+  # Query (Jaeger UI) is accessed through auth-proxy at / and /jaeger
+  # No direct ALB access needed
 
   depends_on = [
     aws_lb_listener.public-https,
