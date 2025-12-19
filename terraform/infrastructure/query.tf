@@ -26,6 +26,15 @@ resource "aws_vpc_security_group_ingress_rule" "query_from_mcp" {
   to_port                      = 16686
 }
 
+# receives traffic from auth-proxy
+resource "aws_vpc_security_group_ingress_rule" "query_from_auth_proxy" {
+  security_group_id            = aws_security_group.query.id
+  referenced_security_group_id = aws_security_group.auth_proxy.id
+  from_port                    = 16686
+  ip_protocol                  = "tcp"
+  to_port                      = 16686
+}
+
 # health check endpoint
 resource "aws_vpc_security_group_ingress_rule" "query_health_check" {
   security_group_id            = aws_security_group.query.id
