@@ -10,7 +10,7 @@ resource "aws_security_group" "auth_proxy" {
   }
 }
 
-# Ingress - who can reach the auth-proxy?
+# Ingress 
 # ALB forwards requests to auth-proxy via :3001
 resource "aws_vpc_security_group_ingress_rule" "auth_proxy_from_alb" {
   security_group_id            = aws_security_group.auth_proxy.id
@@ -30,7 +30,7 @@ resource "aws_vpc_security_group_egress_rule" "auth_proxy_to_query" {
   to_port                      = 16686
 }
 
-# Auth-proxy proxies to Prometheus (to display metrics)
+# Auth-proxy proxies to Prometheus
 resource "aws_vpc_security_group_egress_rule" "auth_proxy_to_prometheus" {
   security_group_id            = aws_security_group.auth_proxy.id
   referenced_security_group_id = aws_security_group.prometheus.id
@@ -39,7 +39,7 @@ resource "aws_vpc_security_group_egress_rule" "auth_proxy_to_prometheus" {
   to_port                      = 9090
 }
 
-# Auth-proxy proxies to AlertManager (to display alerts)
+# Auth-proxy proxies to AlertManager 
 resource "aws_vpc_security_group_egress_rule" "auth_proxy_to_alertmanager" {
   security_group_id            = aws_security_group.auth_proxy.id
   referenced_security_group_id = aws_security_group.alertmanager.id
@@ -155,7 +155,7 @@ resource "aws_lb_target_group" "auth_proxy" {
   }
 }
 
-# ALB listener rule for HTTPS - /auth (login page)
+# ALB listener rule for HTTPS - /auth 
 resource "aws_lb_listener_rule" "auth_proxy_https_login" {
   listener_arn = aws_lb_listener.public-https.arn
   priority     = 10
@@ -176,7 +176,7 @@ resource "aws_lb_listener_rule" "auth_proxy_https_login" {
   }
 }
 
-# ALB listener rule for HTTP - /auth (login page)
+# ALB listener rule for HTTP - /auth 
 resource "aws_lb_listener_rule" "auth_proxy_http_login" {
   listener_arn = aws_lb_listener.public-http.arn
   priority     = 10
