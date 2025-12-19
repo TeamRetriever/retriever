@@ -55,13 +55,14 @@ app.use(
 ); 
 
 
+// Redirect /prometheus to /prometheus/query (Prometheus query UI)
+app.get('/prometheus', requireAuth, (_req, res) => {
+  res.redirect('/prometheus/query');
+});
+
 app.use(
     '/prometheus',
     requireAuth,
-    (req, _res, next) => {
-      console.log('>>> Prometheus route matched:', req.path, req.url);
-      next();
-    },
     createProxyMiddleware({
       target: PROMETHEUS_URL,
       changeOrigin: true,
