@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
+import {Command} from 'commander';
 import chalk from 'chalk';
-import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
+import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts';
 import ora from 'ora';
+import {runConfigurationFlow, saveConfig} from './config.js';
 
 const ASCII_ART = `
 ${chalk.cyan('╔═══════════════════════════════════════════════════════════════╗')}
@@ -70,16 +71,22 @@ async function init() {
   console.log(chalk.green('\n✓ AWS Account:'), chalk.white(credentials.account));
   console.log(chalk.green('✓ User ARN:'), chalk.white(credentials.arn));
 
+  // Step 2: Run interactive configuration flow
+  const config = await runConfigurationFlow();
+
+  // Step 3: Save configuration
+  await saveConfig(config);
+
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
-  console.log(chalk.yellow('Next steps will guide you through:'));
-  console.log(chalk.white('  1. VPC and subnet configuration'));
-  console.log(chalk.white('  2. ECS cluster setup'));
-  console.log(chalk.white('  3. Observability stack deployment (Jaeger, Prometheus, etc.)'));
-  console.log(chalk.white('  4. Load balancer and DNS configuration'));
+  console.log(chalk.green('✓ Configuration complete!\n'));
+  console.log(chalk.yellow('Next steps:'));
+  console.log(chalk.white('  1. TLS certificate setup'));
+  console.log(chalk.white('  2. Deploy observability stack (Jaeger, Prometheus, etc.)'));
+  console.log(chalk.white('  3. Configure load balancer and DNS'));
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
-  console.log(chalk.green('\n🚀 Ready to begin!'));
-  console.log(chalk.gray('\n(Full deployment workflow coming soon...)\n'));
+  console.log(chalk.green('\n🚀 Ready for deployment!'));
+  console.log(chalk.gray('\n(Deployment commands coming soon...)\n'));
 }
 
 const program = new Command();
