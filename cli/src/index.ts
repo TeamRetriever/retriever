@@ -4,7 +4,8 @@ import {Command} from 'commander';
 import chalk from 'chalk';
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts';
 import ora from 'ora';
-import {runConfigurationFlow, saveConfig} from './config.js';
+import {runConfigurationFlow, saveConfig, RetrieverConfig} from './config.js';
+import {runTLSCertificateFlow} from './tls.js';
 
 const ASCII_ART = `
 ${chalk.cyan('╔═══════════════════════════════════════════════════════════════╗')}
@@ -71,18 +72,31 @@ async function init() {
   console.log(chalk.green('\n✓ AWS Account:'), chalk.white(credentials.account));
   console.log(chalk.green('✓ User ARN:'), chalk.white(credentials.arn));
 
-  // Step 2: Run interactive configuration flow
-  const config = await runConfigurationFlow();
+  // Step 2: Run interactive AWS configuration flow
+  const awsConfig = await runConfigurationFlow();
 
-  // Step 3: Save configuration
-  await saveConfig(config);
+  // Step 3: Run TLS certificate setup
+  const tlsCert = await runTLSCertificateFlow(awsConfig.region);
+
+  if (!tlsCert) {
+    console.log(chalk.red('\nCertificate setup failed. Please run `retriever init` again.'));
+    process.exit(1);
+  }
+
+  // Step 4: Combine and save complete configuration
+  const completeConfig: RetrieverConfig = {
+    ...awsConfig,
+    certificateArn: tlsCert.certificateArn,
+    domain: tlsCert.domain
+  };
+
+  await saveConfig(completeConfig);
 
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
   console.log(chalk.green('✓ Configuration complete!\n'));
   console.log(chalk.yellow('Next steps:'));
-  console.log(chalk.white('  1. TLS certificate setup'));
-  console.log(chalk.white('  2. Deploy observability stack (Jaeger, Prometheus, etc.)'));
-  console.log(chalk.white('  3. Configure load balancer and DNS'));
+  console.log(chalk.white('  1. Deploy observability stack (Jaeger, Prometheus, etc.)'));
+  console.log(chalk.white('  2. Access your Retriever dashboard'));
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
   console.log(chalk.green('\n🚀 Ready for deployment!'));

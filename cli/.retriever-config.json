@@ -1,0 +1,7 @@
+{
+  "region": "us-east-1",
+  "vpcId": "vpc-0ee38cfdac8cd403b",
+  "publicSubnetId1": "subnet-0761456d2dac53c81",
+  "publicSubnetId2": "subnet-0639d8bb212bf012f",
+  "privateSubnetId": "subnet-082b0c83f391b1e64"
+}

@@ -13,8 +13,10 @@
     "link": "npm run build && npm link"
   },
   "dependencies": {
+    "@aws-sdk/client-acm": "^3.962.0",
     "@aws-sdk/client-ec2": "^3.958.0",
     "@aws-sdk/client-ecs": "^3.700.0",
+    "@aws-sdk/client-route-53": "^3.962.0",
     "@aws-sdk/client-sts": "^3.700.0",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",

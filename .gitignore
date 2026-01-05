@@ -72,5 +72,6 @@ terraform.rc
 *.key
 *.pub
 
-# sample trace data 
+# Retriever files
 sample_trace.json
+.retriever-config.json

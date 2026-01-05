@@ -14,6 +14,8 @@ export interface RetrieverConfig {
   publicSubnetId1: string;
   publicSubnetId2: string;
   privateSubnetId: string;
+  certificateArn?: string;
+  domain?: string;
 }
 
 /**
@@ -113,25 +115,21 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
 
   if (subnets.length < 3) {
     console.error(chalk.red('\nInsufficient subnets in this VPC.'));
-    console.error(chalk.yellow('Retriever requires at least 2 public subnets and 1 private subnet.'));
+    console.error(chalk.yellow('Retriever requires at least 3 subnets (2 for load balancer, 1 for backend services).'));
     process.exit(1);
   }
-
-  // Separate public and private subnets for easier selection
-  const publicSubnets = subnets.filter(s => s.isPublic);
-  const privateSubnets = subnets.filter(s => !s.isPublic);
 
   console.log(chalk.cyan('\nRetriever requires:'));
   console.log(chalk.white('  • 2 public subnets (in different availability zones) for the load balancer'));
   console.log(chalk.white('  • 1 private subnet for backend services\n'));
 
-  // Select first public subnet
+  // Select first public subnet (show all subnets)
   const { publicSubnetId1 } = await inquirer.prompt([
     {
       type: 'list',
       name: 'publicSubnetId1',
-      message: 'Select FIRST public subnet:',
-      choices: publicSubnets.map(subnet => ({
+      message: 'Select FIRST public subnet (for load balancer):',
+      choices: subnets.map(subnet => ({
         name: `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}]`,
         value: subnet.id
       }))
@@ -141,14 +139,15 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
   const subnet1 = subnets.find(s => s.id === publicSubnetId1);
   console.log(chalk.green('✓ Public Subnet 1:'), chalk.white(`${subnet1?.name} (${publicSubnetId1})`));
 
-  // Select second public subnet (must be in different AZ)
-  const remainingPublicSubnets = publicSubnets.filter(
+  // Select second public subnet (must be in different AZ and different from first)
+  const remainingSubnetsForPublic2 = subnets.filter(
     s => s.id !== publicSubnetId1 && s.availabilityZone !== subnet1?.availabilityZone
   );
 
-  if (remainingPublicSubnets.length === 0) {
-    console.error(chalk.red('\nNo public subnets available in a different availability zone.'));
+  if (remainingSubnetsForPublic2.length === 0) {
+    console.error(chalk.red('\nNo subnets available in a different availability zone.'));
     console.error(chalk.yellow('Retriever requires 2 public subnets in different AZs for high availability.'));
+    console.error(chalk.yellow(`Selected subnet is in ${subnet1?.availabilityZone}. Please create a subnet in a different AZ.`));
     process.exit(1);
   }
 
@@ -156,8 +155,8 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
     {
       type: 'list',
       name: 'publicSubnetId2',
-      message: 'Select SECOND public subnet (different AZ):',
-      choices: remainingPublicSubnets.map(subnet => ({
+      message: 'Select SECOND public subnet (must be in different AZ):',
+      choices: remainingSubnetsForPublic2.map(subnet => ({
         name: `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}]`,
         value: subnet.id
       }))
@@ -167,10 +166,14 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
   const subnet2 = subnets.find(s => s.id === publicSubnetId2);
   console.log(chalk.green('✓ Public Subnet 2:'), chalk.white(`${subnet2?.name} (${publicSubnetId2})`));
 
-  // Select private subnet
-  if (privateSubnets.length === 0) {
-    console.error(chalk.red('\nNo private subnets found in this VPC.'));
-    console.error(chalk.yellow('Retriever requires 1 private subnet for backend services.'));
+  // Select private subnet (can't be either of the public ones)
+  const remainingSubnetsForPrivate = subnets.filter(
+    s => s.id !== publicSubnetId1 && s.id !== publicSubnetId2
+  );
+
+  if (remainingSubnetsForPrivate.length === 0) {
+    console.error(chalk.red('\nNo remaining subnets available for private subnet selection.'));
+    console.error(chalk.yellow('Retriever requires at least 3 total subnets.'));
     process.exit(1);
   }
 
@@ -178,8 +181,8 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
     {
       type: 'list',
       name: 'privateSubnetId',
-      message: 'Select private subnet:',
-      choices: privateSubnets.map(subnet => ({
+      message: 'Select private subnet (for backend services):',
+      choices: remainingSubnetsForPrivate.map(subnet => ({
         name: `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}]`,
         value: subnet.id
       }))

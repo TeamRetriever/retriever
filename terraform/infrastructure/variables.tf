@@ -14,16 +14,9 @@ variable "PRIVATE_SUBNET_ID" {
   type = string
 }
 
-variable "USER_CERTIFICATE_PRIVATE_KEY_FILE" {
-  type = string
-}
-
-variable "USER_CERTIFICATE_BODY_FILE" {
-  type = string
-}
-
-variable "USER_CERTIFICATE_CHAIN_FILE" {
-  type = string
+variable "CERTIFICATE_ARN" {
+  type        = string
+  description = "ARN of the ACM certificate for HTTPS"
 }
 
 variable "BASE_URL" {
