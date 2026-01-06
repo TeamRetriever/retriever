@@ -4,8 +4,18 @@ import {Command} from 'commander';
 import chalk from 'chalk';
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts';
 import ora from 'ora';
-import {runConfigurationFlow, saveConfig, RetrieverConfig} from './config.js';
+import inquirer from 'inquirer';
+import {runConfigurationFlow, saveConfig, loadConfig, RetrieverConfig} from './config.js';
 import {runTLSCertificateFlow} from './tls.js';
+import {
+  checkTerraformInstalled,
+  validateTerraformDirectory,
+  generateTerraformVars,
+  terraformInit,
+  terraformPlan,
+  terraformApply,
+  getTerraformOutputs
+} from './terraform.js';
 
 const ASCII_ART = `
 ${chalk.cyan('╔═══════════════════════════════════════════════════════════════╗')}
@@ -100,7 +110,122 @@ async function init() {
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
   console.log(chalk.green('\n🚀 Ready for deployment!'));
-  console.log(chalk.gray('\n(Deployment commands coming soon...)\n'));
+  console.log(chalk.white('\nRun'), chalk.cyan('retriever deploy'), chalk.white('to deploy the infrastructure.\n'));
+}
+
+async function deploy() {
+  console.log(ASCII_ART);
+  console.log(chalk.cyan('\nDeploying Retriever Infrastructure\n'));
+
+  // Step 1: Load configuration
+  const config = await loadConfig();
+
+  if (!config) {
+    console.error(chalk.red('\nNo configuration found!'));
+    console.error(chalk.yellow('Please run'), chalk.cyan('retriever init'), chalk.yellow('first to configure your deployment.\n'));
+    process.exit(1);
+  }
+
+  console.log(chalk.green('✓ Configuration loaded'));
+  console.log(chalk.gray(`  Region: ${config.region}`));
+  console.log(chalk.gray(`  VPC: ${config.vpcId}`));
+  console.log(chalk.gray(`  Domain: ${config.domain}\n`));
+
+  // Step 2: Verify AWS credentials
+  const credentials = await checkAWSCredentials();
+
+  if (!credentials) {
+    process.exit(1);
+  }
+
+  console.log(chalk.green('✓ AWS Account:'), chalk.white(credentials.account));
+
+  // Step 3: Check Terraform is installed
+  if (!checkTerraformInstalled()) {
+    console.error(chalk.red('\nTerraform is not installed!'));
+    console.error(chalk.yellow('Please install Terraform from: https://www.terraform.io/downloads\n'));
+    process.exit(1);
+  }
+
+  console.log(chalk.green('✓ Terraform installed'));
+
+  // Step 4: Validate Terraform directory exists
+  const terraformDirValid = await validateTerraformDirectory();
+
+  if (!terraformDirValid) {
+    process.exit(1);
+  }
+
+  console.log(chalk.green('✓ Terraform directory found'));
+
+  // Step 5: Generate Terraform variables file
+  const tfvarsSpinner = ora('Generating Terraform variables...').start();
+
+  try {
+    await generateTerraformVars(config);
+    tfvarsSpinner.succeed('Terraform variables generated');
+  } catch (error) {
+    tfvarsSpinner.fail('Failed to generate Terraform variables');
+    process.exit(1);
+  }
+
+  // Step 6: Initialize Terraform
+  const initSuccess = await terraformInit();
+
+  if (!initSuccess) {
+    process.exit(1);
+  }
+
+  // Step 7: Run Terraform plan
+  const planSuccess = await terraformPlan();
+
+  if (!planSuccess) {
+    process.exit(1);
+  }
+
+  // Step 8: Ask for confirmation
+  console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+  console.log(chalk.yellow('⚠️  This will create AWS resources in your account.'));
+  console.log(chalk.yellow('   You may incur charges for ECS tasks, load balancer, and data transfer.\n'));
+
+  const {confirm} = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'confirm',
+      message: 'Do you want to proceed with the deployment?',
+      default: false
+    }
+  ]);
+
+  if (!confirm) {
+    console.log(chalk.yellow('\nDeployment cancelled.\n'));
+    process.exit(0);
+  }
+
+  // Step 9: Apply Terraform configuration
+  const applySuccess = await terraformApply();
+
+  if (!applySuccess) {
+    console.error(chalk.red('\nDeployment failed. Please check the errors above.\n'));
+    process.exit(1);
+  }
+
+  // Step 10: Get outputs and show success message
+  const outputs = await getTerraformOutputs();
+
+  console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+  console.log(chalk.green('✅ Deployment Complete!\n'));
+
+  console.log(chalk.white('Your Retriever observability platform is now running!\n'));
+
+  if (config.domain) {
+    console.log(chalk.yellow('Next steps:'));
+    console.log(chalk.white(`  1. Point your DNS A record for ${chalk.cyan(config.domain)} to the load balancer`));
+    console.log(chalk.white(`  2. Access Retriever at: ${chalk.cyan('https://' + config.domain)}`));
+    console.log(chalk.white(`  3. Configure your applications to send traces to the collector\n`));
+  }
+
+  console.log(chalk.gray('Tip: Check the AWS Console to view your deployed resources.\n'));
 }
 
 const program = new Command();
@@ -114,5 +239,10 @@ program
   .command('init')
   .description('Initialize Retriever infrastructure in your AWS account')
   .action(init);
+
+program
+  .command('deploy')
+  .description('Deploy Retriever observability stack to AWS')
+  .action(deploy);
 
 program.parse();
