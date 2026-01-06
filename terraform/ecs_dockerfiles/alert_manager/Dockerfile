@@ -24,15 +24,20 @@ if echo "$SLACK_WEBHOOK_URL" | grep -q "webhook_url"; then
   echo "Extracted webhook URL from JSON secret"
 fi
 
-# Validate required environment variable
+# Validate required environment variables
 if [ -z "$SLACK_CHANNEL" ]; then
   echo "Error: SLACK_CHANNEL environment variable is not set"
   exit 1
 fi
 
+if [ -z "$BASE_URL" ]; then
+  echo "Error: BASE_URL environment variable is not set"
+  exit 1
+fi
+
 # Perform substitution using awk (no delimiter issues)
-awk -v webhook="$SLACK_WEBHOOK_URL" -v channel="$SLACK_CHANNEL" \
-    '{gsub(/\$\{SLACK_WEBHOOK_URL\}/, webhook); gsub(/\$\{SLACK_CHANNEL\}/, channel); print}' \
+awk -v webhook="$SLACK_WEBHOOK_URL" -v channel="$SLACK_CHANNEL" -v baseurl="$BASE_URL" \
+    '{gsub(/\$\{SLACK_WEBHOOK_URL\}/, webhook); gsub(/\$\{SLACK_CHANNEL\}/, channel); gsub(/\$\{BASE_URL\}/, baseurl); print}' \
     /etc/alertmanager/alertmanager.yml.template > /etc/alertmanager/alertmanager.yml
 
 # Verify the config was created successfully
@@ -42,14 +47,17 @@ if [ ! -s /etc/alertmanager/alertmanager.yml ]; then
 fi
 
 echo "AlertManager configuration generated successfully"
-exec /bin/alertmanager "$@"
+
+# Build the alertmanager command with dynamic BASE_URL
+exec /bin/alertmanager \
+  --config.file=/etc/alertmanager/alertmanager.yml \
+  --storage.path=/alertmanager \
+  --web.route-prefix=/alertmanager \
+  --web.external-url="${BASE_URL}/alertmanager" \
+  "$@"
 EOF
 
 RUN chmod +x /docker-entrypoint.sh
 USER nobody
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["--config.file=/etc/alertmanager/alertmanager.yml", \
-     "--storage.path=/alertmanager", \
-     "--web.route-prefix=/alertmanager", \
-     "--web.external-url=https://rvr.philipkn.app/alertmanager"]

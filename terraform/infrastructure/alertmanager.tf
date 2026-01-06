@@ -55,6 +55,10 @@ resource "aws_ecs_task_definition" "alertmanager" {
         {
           "name": "SLACK_CHANNEL",
           "value": "#alerts"
+        },
+        {
+          "name": "BASE_URL",
+          "value": "${var.BASE_URL}"
         }
       ],
       "environmentFiles": [],

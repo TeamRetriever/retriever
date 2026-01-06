@@ -26,7 +26,7 @@ receivers:
           *Service:* {{ .Labels.service_name }}
           *Description:* {{ .Annotations.description }}
           *Status:* {{ .Status }}
-          *View in Prometheus:* https://rvr.philipkn.app/prometheus/alerts
-          *View in Jaeger:* https://rvr.philipkn.app
+          *View in Prometheus:* ${BASE_URL}/prometheus/alerts
+          *View in Jaeger:* ${BASE_URL}
           {{ end }}
         send_resolved: true  # Send notification when alert is resolved

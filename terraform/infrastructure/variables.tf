@@ -25,3 +25,9 @@ variable "USER_CERTIFICATE_BODY_FILE" {
 variable "USER_CERTIFICATE_CHAIN_FILE" {
   type = string
 }
+
+variable "BASE_URL" {
+  description = "Base URL for the Retriever UI (used in AlertManager Slack notification links)"
+  type        = string
+  default     = "https://rvr.philipkn.app"
+}
