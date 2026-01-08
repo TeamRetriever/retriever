@@ -16,6 +16,7 @@ export interface RetrieverConfig {
   privateSubnetId: string;
   certificateArn?: string;
   domain?: string;
+  jwtToken?: string;
 }
 
 /**
@@ -192,15 +193,13 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
   const subnet2 = subnets.find(s => s.id === publicSubnetId2);
   console.log(chalk.green('✓ Public Subnet 2:'), chalk.white(`${subnet2?.name} (${publicSubnetId2})`));
 
-  const config: RetrieverConfig = {
+  return {
     region,
     vpcId,
     publicSubnetId1,
     publicSubnetId2,
     privateSubnetId
   };
-
-  return config;
 }
 
 /**
