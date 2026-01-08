@@ -1,4 +1,11 @@
-import { EC2Client, DescribeVpcsCommand, DescribeSubnetsCommand, Vpc, Subnet } from '@aws-sdk/client-ec2';
+import {
+  EC2Client,
+  DescribeVpcsCommand,
+  DescribeSubnetsCommand,
+  DescribeRouteTablesCommand,
+  Vpc,
+  Subnet
+} from '@aws-sdk/client-ec2';
 import chalk from 'chalk';
 
 export interface VPCInfo {
@@ -50,14 +57,70 @@ export async function listVPCs(region: string): Promise<VPCInfo[]> {
 }
 
 /**
- * Lists all subnets in the specified VPC
+ * Checks if a subnet is public by examining its route table
+ *
+ * Why: A subnet is considered public if its route table contains a route
+ * to an Internet Gateway (igw-*). This is the definitive way to determine
+ * public vs private subnets, better than checking MapPublicIpOnLaunch.
+ */
+async function isSubnetPublic(
+  ec2Client: EC2Client,
+  vpcId: string,
+  subnetId: string
+): Promise<boolean> {
+  try {
+    // Get route tables associated with this subnet or the VPC main route table
+    const routeTablesResponse = await ec2Client.send(
+      new DescribeRouteTablesCommand({
+        Filters: [
+          {
+            Name: 'vpc-id',
+            Values: [vpcId]
+          }
+        ]
+      })
+    );
+
+    if (!routeTablesResponse.RouteTables) {
+      return false;
+    }
+
+    // Find the route table for this specific subnet
+    // If no explicit association, it uses the main route table
+    let relevantRouteTable = routeTablesResponse.RouteTables.find(rt =>
+      rt.Associations?.some(assoc => assoc.SubnetId === subnetId)
+    );
+
+    // If no explicit association found, use the main route table for the VPC
+    if (!relevantRouteTable) {
+      relevantRouteTable = routeTablesResponse.RouteTables.find(rt =>
+        rt.Associations?.some(assoc => assoc.Main === true)
+      );
+    }
+
+    // Check if route table has a route to an Internet Gateway
+    if (relevantRouteTable?.Routes) {
+      return relevantRouteTable.Routes.some(
+        route => route.GatewayId?.startsWith('igw-')
+      );
+    }
+
+    return false;
+  } catch (error) {
+    // If we can't determine, fall back to MapPublicIpOnLaunch
+    return false;
+  }
+}
+
+/**
+ * Lists all subnets in the specified VPC with proper public/private detection
  *
  * Why: Users need to select 2 public subnets (for load balancer HA) and
  * 1 private subnet (for backend services). We determine if a subnet is
- * public by checking if it has a route to an Internet Gateway.
+ * public by checking if its route table has a route to an Internet Gateway.
  */
 export async function listSubnets(region: string, vpcId: string): Promise<SubnetInfo[]> {
-  const ec2Client = new EC2Client({ region });
+  const ec2Client = new EC2Client({region});
   const command = new DescribeSubnetsCommand({
     Filters: [
       {
@@ -74,17 +137,29 @@ export async function listSubnets(region: string, vpcId: string): Promise<Subnet
       return [];
     }
 
-    return response.Subnets.map((subnet: Subnet) => {
-      const nameTag = subnet.Tags?.find(tag => tag.Key === 'Name');
-      return {
-        id: subnet.SubnetId || '',
-        name: nameTag?.Value || '(no name)',
-        cidr: subnet.CidrBlock || '',
-        availabilityZone: subnet.AvailabilityZone || '',
-        // Note: MapPublicIpOnLaunch is a good indicator but not definitive
-        // A proper check would involve checking route tables for IGW routes
-        isPublic: subnet.MapPublicIpOnLaunch || false
-      };
+    // Check each subnet's route table to determine if it's public
+    const subnetsWithPublicInfo = await Promise.all(
+      response.Subnets.map(async (subnet: Subnet) => {
+        const nameTag = subnet.Tags?.find(tag => tag.Key === 'Name');
+        const subnetId = subnet.SubnetId || '';
+
+        // Check route table for Internet Gateway route
+        const isPublic = await isSubnetPublic(ec2Client, vpcId, subnetId);
+
+        return {
+          id: subnetId,
+          name: nameTag?.Value || '(no name)',
+          cidr: subnet.CidrBlock || '',
+          availabilityZone: subnet.AvailabilityZone || '',
+          isPublic
+        };
+      })
+    );
+
+    // Sort: private subnets first, then public subnets
+    return subnetsWithPublicInfo.sort((a, b) => {
+      if (a.isPublic === b.isPublic) return 0;
+      return a.isPublic ? 1 : -1; // private (false) before public (true)
     });
   } catch (error) {
     console.error(chalk.red('Error listing subnets:'), error);

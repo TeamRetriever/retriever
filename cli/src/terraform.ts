@@ -1,9 +1,9 @@
-import { execSync } from 'child_process';
+import {execSync} from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
 import fs from 'fs/promises';
 import path from 'path';
-import { RetrieverConfig } from './config.js';
+import {RetrieverConfig} from './config.js';
 
 /**
  * Path to the Terraform infrastructure directory
@@ -62,7 +62,7 @@ CERTIFICATE_ARN = "${config.certificateArn}"
  */
 export function checkTerraformInstalled(): boolean {
   try {
-    execSync('terraform version', { stdio: 'pipe' });
+    execSync('terraform version', {stdio: 'pipe'});
     return true;
   } catch (error) {
     return false;
@@ -133,6 +133,58 @@ export async function terraformPlan(): Promise<boolean> {
 }
 
 /**
+ * Checks if any ECS services are missing Service Connect configuration
+ *
+ * Why: AWS ECS has a limitation where Service Connect configuration
+ * cannot always be updated in-place. If services exist without Service
+ * Connect enabled, they need to be recreated.
+ *
+ * This function detects services that need recreation and returns
+ * the Terraform resource addresses to pass to -replace.
+ */
+export async function checkServiceConnectDrift(): Promise<string[]> {
+  const servicesNeedingRecreation: string[] = [];
+
+  // Map of AWS service names to Terraform resource names
+  const serviceMapping: Record<string, string> = {
+    'rvr_query': 'aws_ecs_service.query',
+    'rvr_auth_proxy': 'aws_ecs_service.auth_proxy',
+    'rvr_prometheus': 'aws_ecs_service.prometheus',
+    'rvr_alertmanager': 'aws_ecs_service.alertmanager',
+    'rvr_mcp': 'aws_ecs_service.mcp',
+    'rvr_collector': 'aws_ecs_service.rvr_collector',
+    'rvr_opensearch': 'aws_ecs_service.rvr_opensearch'
+  };
+
+  try {
+    // Check each service for Service Connect configuration
+    for (const [serviceName, tfResource] of Object.entries(serviceMapping)) {
+      try {
+        const result = execSync(
+          `aws ecs describe-services --cluster retriever --services ${serviceName} --region us-east-1 --query 'services[0].serviceConnectConfiguration.enabled' --output text 2>/dev/null`,
+          {encoding: 'utf-8', stdio: 'pipe'}
+        ).trim();
+
+        // If service exists but Service Connect is not enabled
+        // AWS returns empty string, "None", or "null" when Service Connect is missing
+        // AWS returns "True" when Service Connect is enabled
+        if (result && result !== 'True' && result !== 'true') {
+          // Service exists without Service Connect - needs recreation
+          servicesNeedingRecreation.push(tfResource);
+        }
+      } catch (error) {
+        // Service doesn't exist yet or query failed - that's fine, skip it
+      }
+    }
+  } catch (error) {
+    // If we can't check, just proceed without drift detection
+    console.log(chalk.yellow('Could not check for Service Connect drift. Proceeding with normal deployment.'));
+  }
+
+  return servicesNeedingRecreation;
+}
+
+/**
  * Applies the Terraform configuration to deploy infrastructure
  *
  * Why: This is the actual deployment step. It creates all the
@@ -140,34 +192,74 @@ export async function terraformPlan(): Promise<boolean> {
  *
  * We use -auto-approve because the user already confirmed via the
  * interactive prompt in the deploy command.
+ *
+ * The function automatically detects if services need to be recreated
+ * due to missing Service Connect configuration (a known AWS/Terraform
+ * limitation). It can also force recreation via the forceRecreate param.
  */
-export async function terraformApply(): Promise<boolean> {
-  const spinner = ora('Deploying infrastructure...').start();
+export async function terraformApply(forceRecreate: boolean = false): Promise<boolean> {
+  const spinner = ora('Checking for configuration drift...').start();
 
   try {
-    // Run terraform apply with -auto-approve since we already confirmed
-    const output = execSync('terraform apply -auto-approve -no-color', {
-      cwd: TERRAFORM_DIR,
-      encoding: 'utf-8',
-      stdio: 'pipe',
-      maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large outputs
-    });
+    // Check if any services need recreation due to Service Connect drift
+    let servicesToReplace: string[];
+    servicesToReplace = [];
 
-    spinner.succeed('Infrastructure deployed successfully!');
+    if (forceRecreate) {
+      // Force recreation of all ECS services
+      spinner.text = 'Force recreation requested - will recreate all ECS services';
+      servicesToReplace = [
+        'aws_ecs_service.query',
+        'aws_ecs_service.auth_proxy',
+        'aws_ecs_service.prometheus',
+        'aws_ecs_service.alertmanager',
+        'aws_ecs_service.mcp',
+        'aws_ecs_service.rvr_collector',
+        'aws_ecs_service.rvr_opensearch'
+      ];
+    } else {
+      // Auto-detect services that need recreation
+      servicesToReplace = await checkServiceConnectDrift();
 
-    // Show the last part of the output (which includes outputs)
-    console.log(chalk.cyan('\n━━━ Deployment Complete ━━━\n'));
+      if (servicesToReplace.length > 0) {
+        spinner.succeed('Detected services without Service Connect');
+        console.log(chalk.yellow('⚠️  The following services will be recreated to enable Service Connect:'));
+        servicesToReplace.forEach(svc => {
+          console.log(chalk.yellow(`   - ${svc}`));
+        });
+        console.log(chalk.gray('\n   (This is required due to AWS ECS Service Connect limitations)\n'));
+      } else {
+        spinner.succeed('No configuration drift detected');
+      }
+    }
 
-    // Extract and show outputs
-    const lines = output.split('\n');
-    const outputStartIndex = lines.findIndex(line => line.includes('Outputs:'));
+    // Build the terraform apply command
+    let command = 'terraform apply -auto-approve -no-color';
 
-    if (outputStartIndex !== -1) {
-      console.log(chalk.green('Deployment Outputs:\n'));
-      lines.slice(outputStartIndex).forEach(line => {
-        console.log(line);
+    if (servicesToReplace.length > 0) {
+      // Add -replace flags for each service that needs recreation
+      servicesToReplace.forEach(svc => {
+        command += ` -replace="${svc}"`;
       });
     }
+
+    spinner.succeed('Starting deployment...');
+    console.log(chalk.cyan('\n━━━ Terraform Apply ━━━\n'));
+    console.log(chalk.gray('This may take several minutes. You\'ll see live progress below:\n'));
+
+    // Run terraform apply with live output streaming
+    try {
+      execSync(command, {
+        cwd: TERRAFORM_DIR,
+        stdio: 'inherit', // Stream output directly to user's terminal
+      });
+    } catch (error) {
+      // If terraform fails, execSync throws - we'll handle it in the outer catch
+      throw error;
+    }
+
+    console.log(chalk.cyan('\n━━━ Deployment Complete ━━━\n'));
+    console.log(chalk.green('✓ Infrastructure deployed successfully!\n'));
 
     return true;
   } catch (error) {

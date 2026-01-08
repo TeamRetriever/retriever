@@ -1,9 +1,0 @@
-{
-  "region": "us-east-1",
-  "vpcId": "vpc-07fb2caf8a32b5a33",
-  "publicSubnetId1": "subnet-0a2f572dca92ee3db",
-  "publicSubnetId2": "subnet-0f3e5fde52f004da6",
-  "privateSubnetId": "subnet-0d064e7697e4045d0",
-  "certificateArn": "arn:aws:acm:us-east-1:848922561293:certificate/a16f110c-c8f5-4495-8933-bccbc7d3648b",
-  "domain": "retriever.bqwalker.com"
-}

@@ -113,7 +113,7 @@ async function init() {
   console.log(chalk.white('\nRun'), chalk.cyan('retriever deploy'), chalk.white('to deploy the infrastructure.\n'));
 }
 
-async function deploy() {
+async function deploy(options: { forceRecreate?: boolean } = {}) {
   console.log(ASCII_ART);
   console.log(chalk.cyan('\nDeploying Retriever Infrastructure\n'));
 
@@ -203,7 +203,7 @@ async function deploy() {
   }
 
   // Step 9: Apply Terraform configuration
-  const applySuccess = await terraformApply();
+  const applySuccess = await terraformApply(options.forceRecreate || false);
 
   if (!applySuccess) {
     console.error(chalk.red('\nDeployment failed. Please check the errors above.\n'));
@@ -218,7 +218,18 @@ async function deploy() {
 
   console.log(chalk.white('Your Retriever observability platform is now running!\n'));
 
-  if (config.domain) {
+  // Show Terraform outputs if available
+  if (outputs.alb_dns_name?.value) {
+    console.log(chalk.yellow('Load Balancer DNS:'), chalk.white(outputs.alb_dns_name.value));
+
+    if (config.domain) {
+      console.log(chalk.yellow('\nNext steps:'));
+      console.log(chalk.white(`  1. Point your DNS A record for ${chalk.cyan(config.domain)} to:`));
+      console.log(chalk.white(`     ${chalk.cyan(outputs.alb_dns_name.value)}`));
+      console.log(chalk.white(`  2. Access Retriever at: ${chalk.cyan('https://' + config.domain)}`));
+      console.log(chalk.white(`  3. Configure your applications to send traces to the collector\n`));
+    }
+  } else if (config.domain) {
     console.log(chalk.yellow('Next steps:'));
     console.log(chalk.white(`  1. Point your DNS A record for ${chalk.cyan(config.domain)} to the load balancer`));
     console.log(chalk.white(`  2. Access Retriever at: ${chalk.cyan('https://' + config.domain)}`));
@@ -243,6 +254,7 @@ program
 program
   .command('deploy')
   .description('Deploy Retriever observability stack to AWS')
+  .option('--force-recreate', 'Force recreation of all ECS services (fixes Service Connect configuration issues)')
   .action(deploy);
 
 program.parse();

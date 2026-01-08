@@ -75,3 +75,4 @@ terraform.rc
 # Retriever files
 sample_trace.json
 .retriever-config.json
+.retriever-mcp-config.json

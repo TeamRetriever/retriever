@@ -372,8 +372,11 @@ export async function requestACMCertificate(
 export async function runTLSCertificateFlow(region: string): Promise<TLSCertificate | null> {
   console.log(chalk.cyan('\n━━━ TLS Certificate Setup ━━━\n'));
 
-  console.log(chalk.white('Retriever will request a free TLS certificate from AWS Certificate Manager (ACM).'));
-  console.log(chalk.white('You\'ll need to verify domain ownership via DNS.\n'));
+  console.log(chalk.white('Retriever uses AWS Certificate Manager (ACM) for TLS certificates.'));
+  console.log(chalk.white('If you already have a certificate for your domain in ACM, we\'ll use it.'));
+  console.log(chalk.white('Otherwise, we\'ll request a new one and help you validate it.\n'));
+  console.log(chalk.gray('Note: If your domain is managed in Route 53, validation happens automatically.'));
+  console.log(chalk.gray('      If not, you\'ll need to add a DNS record to your provider.\n'));
 
   const {domain} = await inquirer.prompt([
     {

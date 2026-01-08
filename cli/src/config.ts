@@ -120,17 +120,41 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
   }
 
   console.log(chalk.cyan('\nRetriever requires:'));
-  console.log(chalk.white('  • 2 public subnets (in different availability zones) for the load balancer'));
-  console.log(chalk.white('  • 1 private subnet for backend services\n'));
+  console.log(chalk.white('  • 1 private subnet for backend services'));
+  console.log(chalk.white('  • 2 public subnets (in different availability zones) for the load balancer\n'));
 
-  // Select first public subnet (show all subnets)
+  // Helper function to format subnet display name with public/private indicator
+  const formatSubnetName = (subnet: SubnetInfo) => {
+    const type = subnet.isPublic ? chalk.blue('Public') : chalk.gray('Private');
+    return `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}] ${type}`;
+  };
+
+  // Select private subnet first (show all subnets with public/private labels)
+  const { privateSubnetId } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'privateSubnetId',
+      message: 'Select private subnet (for backend services):',
+      choices: subnets.map(subnet => ({
+        name: formatSubnetName(subnet),
+        value: subnet.id
+      }))
+    }
+  ]);
+
+  const privateSubnet = subnets.find(s => s.id === privateSubnetId);
+  console.log(chalk.green('✓ Private Subnet:'), chalk.white(`${privateSubnet?.name} (${privateSubnetId})`));
+
+  // Select first public subnet (exclude the private subnet)
+  const remainingSubnetsForPublic1 = subnets.filter(s => s.id !== privateSubnetId);
+
   const { publicSubnetId1 } = await inquirer.prompt([
     {
       type: 'list',
       name: 'publicSubnetId1',
       message: 'Select FIRST public subnet (for load balancer):',
-      choices: subnets.map(subnet => ({
-        name: `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}]`,
+      choices: remainingSubnetsForPublic1.map(subnet => ({
+        name: formatSubnetName(subnet),
         value: subnet.id
       }))
     }
@@ -139,9 +163,11 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
   const subnet1 = subnets.find(s => s.id === publicSubnetId1);
   console.log(chalk.green('✓ Public Subnet 1:'), chalk.white(`${subnet1?.name} (${publicSubnetId1})`));
 
-  // Select second public subnet (must be in different AZ and different from first)
+  // Select second public subnet (must be in different AZ and different from first and private)
   const remainingSubnetsForPublic2 = subnets.filter(
-    s => s.id !== publicSubnetId1 && s.availabilityZone !== subnet1?.availabilityZone
+    s => s.id !== privateSubnetId &&
+         s.id !== publicSubnetId1 &&
+         s.availabilityZone !== subnet1?.availabilityZone
   );
 
   if (remainingSubnetsForPublic2.length === 0) {
@@ -157,7 +183,7 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
       name: 'publicSubnetId2',
       message: 'Select SECOND public subnet (must be in different AZ):',
       choices: remainingSubnetsForPublic2.map(subnet => ({
-        name: `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}]`,
+        name: formatSubnetName(subnet),
         value: subnet.id
       }))
     }
@@ -165,32 +191,6 @@ export async function runConfigurationFlow(): Promise<RetrieverConfig> {
 
   const subnet2 = subnets.find(s => s.id === publicSubnetId2);
   console.log(chalk.green('✓ Public Subnet 2:'), chalk.white(`${subnet2?.name} (${publicSubnetId2})`));
-
-  // Select private subnet (can't be either of the public ones)
-  const remainingSubnetsForPrivate = subnets.filter(
-    s => s.id !== publicSubnetId1 && s.id !== publicSubnetId2
-  );
-
-  if (remainingSubnetsForPrivate.length === 0) {
-    console.error(chalk.red('\nNo remaining subnets available for private subnet selection.'));
-    console.error(chalk.yellow('Retriever requires at least 3 total subnets.'));
-    process.exit(1);
-  }
-
-  const { privateSubnetId } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'privateSubnetId',
-      message: 'Select private subnet (for backend services):',
-      choices: remainingSubnetsForPrivate.map(subnet => ({
-        name: `${subnet.name} (${subnet.id}) - ${subnet.cidr} [${subnet.availabilityZone}]`,
-        value: subnet.id
-      }))
-    }
-  ]);
-
-  const privateSubnet = subnets.find(s => s.id === privateSubnetId);
-  console.log(chalk.green('✓ Private Subnet:'), chalk.white(`${privateSubnet?.name} (${privateSubnetId})`));
 
   const config: RetrieverConfig = {
     region,
