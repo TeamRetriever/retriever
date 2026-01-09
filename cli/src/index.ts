@@ -22,7 +22,8 @@ import {
   terraformInit,
   terraformPlan,
   terraformApply,
-  getTerraformOutputs
+  getTerraformOutputs,
+  verifyServiceConnect
 } from './terraform.js';
 
 const ASCII_ART = `
@@ -275,14 +276,17 @@ async function deploy(options: { forceRecreate?: boolean } = {}) {
   }
 
   // Step 9: Apply Terraform configuration
-  const applySuccess = await terraformApply(options.forceRecreate || false);
+  const applySuccess = await terraformApply(options.forceRecreate || false, config.region);
 
   if (!applySuccess) {
     console.error(chalk.red('\nDeployment failed. Please check the errors above.\n'));
     process.exit(1);
   }
 
-  // Step 10: Get outputs and show success message
+  // Step 10: Verify Service Connect configuration
+  await verifyServiceConnect(config.region);
+
+  // Step 11: Get outputs and show success message
   const outputs = await getTerraformOutputs();
 
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));

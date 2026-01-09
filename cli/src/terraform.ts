@@ -142,8 +142,11 @@ export async function terraformPlan(): Promise<boolean> {
  * This function detects services that need recreation and returns
  * the Terraform resource addresses to pass to -replace.
  */
-export async function checkServiceConnectDrift(): Promise<string[]> {
+export async function checkServiceConnectDrift(region?: string): Promise<string[]> {
   const servicesNeedingRecreation: string[] = [];
+
+  // Get region from environment or parameter
+  const awsRegion = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
   // Map of AWS service names to Terraform resource names
   const serviceMapping: Record<string, string> = {
@@ -161,14 +164,18 @@ export async function checkServiceConnectDrift(): Promise<string[]> {
     for (const [serviceName, tfResource] of Object.entries(serviceMapping)) {
       try {
         const result = execSync(
-          `aws ecs describe-services --cluster retriever --services ${serviceName} --region us-east-1 --query 'services[0].serviceConnectConfiguration.enabled' --output text 2>/dev/null`,
+          `aws ecs describe-services --cluster retriever --services ${serviceName} --region ${awsRegion} --query 'services[0].serviceConnectConfiguration.enabled' --output text 2>/dev/null`,
           {encoding: 'utf-8', stdio: 'pipe'}
         ).trim();
 
         // If service exists but Service Connect is not enabled
-        // AWS returns empty string, "None", or "null" when Service Connect is missing
-        // AWS returns "True" when Service Connect is enabled
-        if (result && result !== 'True' && result !== 'true') {
+        // AWS CLI returns "None" when serviceConnectConfiguration is null
+        // AWS CLI returns "False" when serviceConnectConfiguration.enabled is false
+        // AWS CLI returns "True" when serviceConnectConfiguration.enabled is true
+        // Empty string means the service doesn't exist
+        const needsRecreation = result && result !== '' && result !== 'True' && result !== 'true';
+
+        if (needsRecreation) {
           // Service exists without Service Connect - needs recreation
           servicesNeedingRecreation.push(tfResource);
         }
@@ -197,7 +204,7 @@ export async function checkServiceConnectDrift(): Promise<string[]> {
  * due to missing Service Connect configuration (a known AWS/Terraform
  * limitation). It can also force recreation via the forceRecreate param.
  */
-export async function terraformApply(forceRecreate: boolean = false): Promise<boolean> {
+export async function terraformApply(forceRecreate: boolean = false, region?: string): Promise<boolean> {
   const spinner = ora('Checking for configuration drift...').start();
 
   try {
@@ -219,7 +226,7 @@ export async function terraformApply(forceRecreate: boolean = false): Promise<bo
       ];
     } else {
       // Auto-detect services that need recreation
-      servicesToReplace = await checkServiceConnectDrift();
+      servicesToReplace = await checkServiceConnectDrift(region);
 
       if (servicesToReplace.length > 0) {
         spinner.succeed('Detected services without Service Connect');
@@ -299,6 +306,109 @@ export async function getTerraformOutputs(): Promise<Record<string, any>> {
   } catch (error) {
     console.error(chalk.yellow('Warning: Could not retrieve Terraform outputs'));
     return {};
+  }
+}
+
+/**
+ * Verifies that Service Connect is properly configured on deployed services
+ *
+ * Why: After deployment, we should verify that Service Connect was actually
+ * applied to all services. This catches any issues early before users try
+ * to access the services and get DNS resolution errors.
+ *
+ * We check for Service Connect sidecar containers in running tasks, which is
+ * more reliable than the ECS service API (which sometimes doesn't return
+ * serviceConnectConfiguration even when Service Connect is active).
+ *
+ * Returns: { success: boolean, servicesChecked: number, servicesMissingConnect: string[] }
+ */
+export async function verifyServiceConnect(region?: string): Promise<{
+  success: boolean;
+  servicesChecked: number;
+  servicesMissingConnect: string[];
+}> {
+  const awsRegion = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
+  const spinner = ora('Verifying Service Connect configuration...').start();
+
+  const serviceNames = [
+    'rvr_query',
+    'rvr_auth_proxy',
+    'rvr_prometheus',
+    'rvr_alertmanager',
+    'rvr_mcp',
+    'rvr_collector',
+    'rvr_opensearch'
+  ];
+
+  const servicesMissingConnect: string[] = [];
+  let servicesChecked = 0;
+
+  try {
+    for (const serviceName of serviceNames) {
+      try {
+        // Get the running task for this service
+        const taskArn = execSync(
+          `aws ecs list-tasks --cluster retriever --service-name ${serviceName} --region ${awsRegion} --query 'taskArns[0]' --output text 2>/dev/null`,
+          {encoding: 'utf-8', stdio: 'pipe'}
+        ).trim();
+
+        // Skip if no task is running
+        if (!taskArn || taskArn === 'None' || taskArn === '') {
+          continue;
+        }
+
+        servicesChecked++;
+
+        // Check if the task has a Service Connect sidecar container
+        const containers = execSync(
+          `aws ecs describe-tasks --cluster retriever --tasks ${taskArn} --region ${awsRegion} --query 'tasks[0].containers[*].name' --output json 2>/dev/null`,
+          {encoding: 'utf-8', stdio: 'pipe'}
+        ).trim();
+
+        const containerNames = JSON.parse(containers);
+        const hasServiceConnect = containerNames.some((name: string) =>
+          name.startsWith('ecs-service-connect-')
+        );
+
+        if (!hasServiceConnect) {
+          servicesMissingConnect.push(serviceName);
+        }
+      } catch (error) {
+        // Service might not exist or query failed - skip
+      }
+    }
+
+    if (servicesMissingConnect.length > 0) {
+      spinner.fail('Service Connect verification failed');
+      console.log(chalk.red('\n⚠️  The following services are missing Service Connect:\n'));
+      servicesMissingConnect.forEach(svc => {
+        console.log(chalk.red(`   - ${svc}`));
+      });
+      console.log(chalk.yellow('\n   Run'), chalk.cyan('retriever deploy --force-recreate'), chalk.yellow('to fix this issue.\n'));
+
+      return {
+        success: false,
+        servicesChecked,
+        servicesMissingConnect
+      };
+    }
+
+    spinner.succeed(`Service Connect verified on ${servicesChecked} services`);
+
+    return {
+      success: true,
+      servicesChecked,
+      servicesMissingConnect: []
+    };
+  } catch (error) {
+    spinner.warn('Could not verify Service Connect configuration');
+    console.log(chalk.gray('   Skipping verification check\n'));
+
+    return {
+      success: true, // Don't fail deployment if verification fails
+      servicesChecked: 0,
+      servicesMissingConnect: []
+    };
   }
 }
 
