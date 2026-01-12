@@ -1,3 +1,0 @@
-bucket = "retriever-tfstate-871826697476"
-key    = "retriever/terraform.tfstate"
-region = "us-east-1"
