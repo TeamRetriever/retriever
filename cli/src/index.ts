@@ -13,12 +13,15 @@ import {
   createOrUpdateSecretInSecretsManager,
   generateJWTSecret,
   generateJWTToken,
-  isTokenExpiringSoon
+  isTokenExpiringSoon,
+  ensureSlackWebhookSecret
 } from './secrets.js';
 import {
   checkTerraformInstalled,
   validateTerraformDirectory,
   generateTerraformVars,
+  ensureEcsTaskExecutionRole,
+  setupS3Backend,
   terraformInit,
   terraformPlan,
   terraformApply,
@@ -242,21 +245,53 @@ async function deploy(options: { forceRecreate?: boolean } = {}) {
     process.exit(1);
   }
 
-  // Step 6: Initialize Terraform
-  const initSuccess = await terraformInit();
+  // Step 6: Ensure ECS task execution role exists
+  const roleSuccess = await ensureEcsTaskExecutionRole();
+
+  if (!roleSuccess) {
+    process.exit(1);
+  }
+
+  // Step 7: Ensure Slack webhook secret exists
+  const slackSecretSuccess = await ensureSlackWebhookSecret(config.region);
+
+  if (!slackSecretSuccess) {
+    console.log(chalk.yellow('\nWarning: Failed to setup Slack webhook secret.'));
+    console.log(chalk.yellow('You can continue with deployment, but Alertmanager notifications won\'t work.\n'));
+
+    const {continueAnyway} = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'continueAnyway',
+        message: 'Continue with deployment anyway?',
+        default: true
+      }
+    ]);
+
+    if (!continueAnyway) {
+      console.log(chalk.yellow('\nDeployment cancelled.\n'));
+      process.exit(0);
+    }
+  }
+
+  // Step 8: Setup S3 backend for state storage
+  const backendConfigPath = await setupS3Backend(config.region);
+
+  // Step 9: Initialize Terraform
+  const initSuccess = await terraformInit(backendConfigPath);
 
   if (!initSuccess) {
     process.exit(1);
   }
 
-  // Step 7: Run Terraform plan
+  // Step 10: Run Terraform plan
   const planSuccess = await terraformPlan();
 
   if (!planSuccess) {
     process.exit(1);
   }
 
-  // Step 8: Ask for confirmation
+  // Step 11: Ask for confirmation
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
   console.log(chalk.yellow('⚠️  This will create AWS resources in your account.'));
   console.log(chalk.yellow('   You may incur charges for ECS tasks, load balancer, and data transfer.\n'));
@@ -275,7 +310,7 @@ async function deploy(options: { forceRecreate?: boolean } = {}) {
     process.exit(0);
   }
 
-  // Step 9: Apply Terraform configuration
+  // Step 12: Apply Terraform configuration
   const applySuccess = await terraformApply(options.forceRecreate || false, config.region);
 
   if (!applySuccess) {
@@ -283,10 +318,10 @@ async function deploy(options: { forceRecreate?: boolean } = {}) {
     process.exit(1);
   }
 
-  // Step 10: Verify Service Connect configuration
+  // Step 13: Verify Service Connect configuration
   await verifyServiceConnect(config.region);
 
-  // Step 11: Get outputs and show success message
+  // Step 14: Get outputs and show success message
   const outputs = await getTerraformOutputs();
 
   console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));

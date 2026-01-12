@@ -70,16 +70,202 @@ export function checkTerraformInstalled(): boolean {
 }
 
 /**
+ * Ensures the ECS task execution role exists with proper permissions
+ *
+ * Why: The Terraform configs expect this role to exist, but don't create it.
+ * We need to create it with CloudWatch Logs permissions before Terraform runs.
+ * This fixes two issues:
+ * 1. Missing ecsTaskExecutionRole causing Terraform data source errors
+ * 2. Missing logs:CreateLogGroup permission causing ECS task failures
+ */
+export async function ensureEcsTaskExecutionRole(): Promise<boolean> {
+  const spinner = ora('Checking ECS task execution role...').start();
+  const roleName = 'ecsTaskExecutionRole';
+
+  try {
+    // Check if role exists
+    try {
+      execSync(`aws iam get-role --role-name ${roleName}`, { stdio: 'pipe' });
+      spinner.text = 'Verifying CloudWatch Logs permissions...';
+
+      // Ensure CloudWatch Logs permissions are attached
+      const cloudwatchPolicy = {
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          Resource: "arn:aws:logs:*:*:*"
+        }]
+      };
+
+      execSync(
+        `aws iam put-role-policy --role-name ${roleName} --policy-name CloudWatchLogsPolicy --policy-document '${JSON.stringify(cloudwatchPolicy)}'`,
+        { stdio: 'pipe' }
+      );
+
+      spinner.succeed('ECS task execution role verified');
+      return true;
+
+    } catch {
+      // Role doesn't exist, create it
+      spinner.text = 'Creating ECS task execution role...';
+
+      const trustPolicy = {
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Principal: { Service: "ecs-tasks.amazonaws.com" },
+          Action: "sts:AssumeRole"
+        }]
+      };
+
+      execSync(
+        `aws iam create-role --role-name ${roleName} --assume-role-policy-document '${JSON.stringify(trustPolicy)}'`,
+        { stdio: 'pipe' }
+      );
+
+      // Attach standard ECS execution policy
+      execSync(
+        `aws iam attach-role-policy --role-name ${roleName} --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy`,
+        { stdio: 'pipe' }
+      );
+
+      // Add CloudWatch Logs permissions
+      const cloudwatchPolicy = {
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          Resource: "arn:aws:logs:*:*:*"
+        }]
+      };
+
+      execSync(
+        `aws iam put-role-policy --role-name ${roleName} --policy-name CloudWatchLogsPolicy --policy-document '${JSON.stringify(cloudwatchPolicy)}'`,
+        { stdio: 'pipe' }
+      );
+
+      spinner.succeed('ECS task execution role created');
+      return true;
+    }
+  } catch (error) {
+    spinner.fail('Failed to setup ECS task execution role');
+    console.error(chalk.red('\nError details:'));
+    if (error instanceof Error) {
+      console.error(error.message);
+    }
+    return false;
+  }
+}
+
+/**
+ * Sets up S3 backend for Terraform state storage
+ *
+ * Why: Each user deploys to their own AWS account, so we need a unique
+ * S3 bucket per account. This function creates a bucket based on the
+ * AWS account ID and generates the backend configuration file.
+ *
+ * The bucket name format: retriever-tfstate-{accountId}
+ */
+export async function setupS3Backend(region?: string): Promise<string | null> {
+  const spinner = ora('Setting up Terraform state storage...').start();
+  const awsRegion = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
+
+  try {
+    // Get AWS account ID
+    const accountId = execSync('aws sts get-caller-identity --query Account --output text', {
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    }).trim();
+
+    const bucketName = `retriever-tfstate-${accountId}`;
+
+    // Check if bucket exists, create if not
+    try {
+      execSync(`aws s3 ls s3://${bucketName} --region ${awsRegion}`, { stdio: 'pipe' });
+      spinner.text = 'State storage bucket found';
+    } catch {
+      // Bucket doesn't exist, create it
+      spinner.text = 'Creating state storage bucket...';
+
+      try {
+        // For us-east-1, don't specify LocationConstraint
+        if (awsRegion === 'us-east-1') {
+          execSync(`aws s3 mb s3://${bucketName} --region ${awsRegion}`, { stdio: 'pipe' });
+        } else {
+          execSync(
+            `aws s3api create-bucket --bucket ${bucketName} --region ${awsRegion} --create-bucket-configuration LocationConstraint=${awsRegion}`,
+            { stdio: 'pipe' }
+          );
+        }
+
+        // Enable versioning for safety
+        execSync(
+          `aws s3api put-bucket-versioning --bucket ${bucketName} --region ${awsRegion} --versioning-configuration Status=Enabled`,
+          { stdio: 'pipe' }
+        );
+
+        spinner.text = 'State storage bucket created';
+      } catch (createError) {
+        spinner.fail('Failed to create state storage bucket');
+        console.error(chalk.red('\nError creating S3 bucket. Falling back to local state.'));
+        return null;
+      }
+    }
+
+    // Generate backend config file
+    const backendConfigDir = path.join(TERRAFORM_DIR, 'backend_configs');
+    const backendConfigPath = path.join(backendConfigDir, 's3_state.tfbackend');
+
+    const backendConfig = `bucket = "${bucketName}"
+key    = "retriever/terraform.tfstate"
+region = "${awsRegion}"
+`;
+
+    try {
+      await fs.mkdir(backendConfigDir, { recursive: true });
+      await fs.writeFile(backendConfigPath, backendConfig, 'utf-8');
+    } catch (writeError) {
+      spinner.fail('Failed to write backend config');
+      return null;
+    }
+
+    spinner.succeed('Terraform state storage configured');
+    return backendConfigPath;
+
+  } catch (error) {
+    spinner.fail('Failed to setup S3 backend');
+    console.log(chalk.yellow('Falling back to local state storage...'));
+    return null;
+  }
+}
+
+/**
  * Initializes Terraform in the infrastructure directory
  *
  * Why: `terraform init` downloads provider plugins (AWS SDK) and
  * sets up the backend. This must be run before plan or apply.
  */
-export async function terraformInit(): Promise<boolean> {
+export async function terraformInit(backendConfigPath?: string | null): Promise<boolean> {
   const spinner = ora('Initializing Terraform...').start();
 
   try {
-    execSync('terraform init', {
+    let command = 'terraform init';
+
+    // If we have a backend config, use it with -reconfigure to handle backend changes
+    if (backendConfigPath) {
+      command += ` -backend-config="${backendConfigPath}" -reconfigure`;
+    }
+
+    execSync(command, {
       cwd: TERRAFORM_DIR,
       stdio: 'pipe'
     });

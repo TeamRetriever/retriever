@@ -1,5 +1,3 @@
-bucket = "rvr-s3-bucket-2025"
-key = "store"
+bucket = "retriever-tfstate-871826697476"
+key    = "retriever/terraform.tfstate"
 region = "us-east-1"
-
-// terraform init -backend-config=./backend_configs/s3_state.tfbackend

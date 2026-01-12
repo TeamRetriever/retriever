@@ -302,3 +302,100 @@ export async function runJWTSetupFlow(region: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Ensures the Slack webhook secret exists in AWS Secrets Manager
+ *
+ * Why: Terraform expects this secret to exist for Alertmanager configuration.
+ * If users don't want Slack notifications, we create a placeholder secret
+ * so Terraform doesn't fail. They can update it later if needed.
+ *
+ * @param region AWS region for Secrets Manager
+ * @returns true if secret exists or was created successfully
+ */
+export async function ensureSlackWebhookSecret(region: string): Promise<boolean> {
+  const SLACK_SECRET_NAME = 'retriever-slack-webhookurl';
+  const client = new SecretsManagerClient({region});
+
+  try {
+    // Check if the secret already exists
+    await client.send(
+      new DescribeSecretCommand({
+        SecretId: SLACK_SECRET_NAME
+      })
+    );
+
+    // Secret exists, we're good
+    return true;
+  } catch (error: any) {
+    if (error instanceof ResourceNotFoundException) {
+      // Secret doesn't exist, ask user if they want to set it up
+      console.log(chalk.yellow('\n⚠️  Slack webhook secret not found.'));
+      console.log(chalk.white('Alertmanager can send notifications to Slack, but it\'s optional.\n'));
+
+      const {setupSlack} = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'setupSlack',
+          message: 'Do you want to configure Slack notifications now?',
+          default: false
+        }
+      ]);
+
+      let webhookUrl: string;
+
+      if (setupSlack) {
+        const {url} = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'url',
+            message: 'Enter your Slack webhook URL:',
+            validate: (input: string) => {
+              if (!input) return 'Webhook URL is required';
+              if (!input.startsWith('https://hooks.slack.com/')) {
+                return 'Invalid Slack webhook URL. Should start with https://hooks.slack.com/';
+              }
+              return true;
+            }
+          }
+        ]);
+        webhookUrl = url;
+      } else {
+        console.log(chalk.gray('Creating placeholder secret. You can update it later if needed.'));
+        webhookUrl = 'https://hooks.slack.com/placeholder';
+      }
+
+      // Create the secret
+      const spinner = ora('Creating Slack webhook secret...').start();
+      try {
+        await client.send(
+          new CreateSecretCommand({
+            Name: SLACK_SECRET_NAME,
+            SecretString: webhookUrl,
+            Description: 'Slack webhook URL for Alertmanager notifications',
+            Tags: [
+              {
+                Key: 'ManagedBy',
+                Value: 'Retriever-CLI'
+              }
+            ]
+          })
+        );
+
+        spinner.succeed('Slack webhook secret created');
+        if (!setupSlack) {
+          console.log(chalk.gray('  Using placeholder URL (update in AWS Secrets Manager to enable Slack)\n'));
+        }
+        return true;
+      } catch (createError: any) {
+        spinner.fail('Failed to create Slack webhook secret');
+        console.error(chalk.red('Error:'), createError.message);
+        return false;
+      }
+    }
+
+    // Other error
+    console.error(chalk.red('Error checking Slack webhook secret:'), error.message);
+    return false;
+  }
+}
