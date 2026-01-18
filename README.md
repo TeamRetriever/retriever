@@ -67,85 +67,7 @@ Retriever is a **cloud-native observability platform** that deploys directly int
 ## 🏗️ Architecture
 
 ### High-Level Overview
-
-```
-         
-    ┌─────────┐                                      ┌─────────┐
-    │  User   │                                      │   LLM   │
-    │         │                                      │   MCP   │
-    └────┬────┘                                      │  Client │
-         │                                           └────┬────┘
-         │ (Auth)                                         │
-         │                                                │ (Queries)
-         │                    ┌─────────┐                 │
-         │                    │ Alert   │                 │
-         │                    │Endpoints│                 │
-         └────────┐           │ (Slack) │            ┌────┘
-                  │           └────▲────┘            │
-                  │                │                 │
-                  │                │ (Alerts)        │
-┌─────────────────┼────────────────┼────────────────-┼─────────────┐
-│                 │     VPC        │                 │             │
-│                 │                │                 │             │
-│            ┌────▼────────────────┴───────────────--▼──────┐      │
-│            │         Load Balancer                        │      │
-│            └────┬────────────────┬────────────────┬─────--┘      │
-│                 │                │                │              │
-│                 │                │                │              │
-│            ┌────▼─────┐     ┌───▼───────┐   ┌───▼─────────┐      │
-│            │   Auth   │     │   User    │   │Observability│      │
-│            │  Server  │     │   App     │   │  Pipeline   │      │
-│            │  (JWT)   │     │  (OTLP)   │   │             │      │
-│            └────┬─────┘     └───┬───────┘   └───┬─────────┘      │
-│                 │               │               │                │
-│                 │               │               │                │
-│  ┌──────────────┴───────────────┴───────────────┴──────────┐     │
-│  │              ECS Fargate Services                       │     │
-│  │                                                         │     │
-│  │  ┌──────────────────────────────────────────┐           │     │
-│  │  │    Auth Proxy Protected Services         │           │     │
-│  │  │                                          │           │     │
-│  │  │  ┌──────────┐  ┌──────────┐  ┌────────┐  │           │     │
-│  │  │  │  Jaeger  │  │Prometheus│  │ Alert  │  │           │     │
-│  │  │  │Query (UI)│  │   (UI)   │  │Manager │  │           │     │
-│  │  │  └────┬─────┘  └────┬─────┘  └───┬────┘  │           │     │
-│  │  │       │             │            │       │           │     │
-│  │  │  ┌────┴─────────────┴────────────┴────┐  │           │     │
-│  │  │  │         MCP Server                 │  │           │     │
-│  │  │  └────────────────────────────────────┘  │           │     │
-│  │  └──────────────────────────────────────────┘           │     │
-│  │                                                         │     │
-│  │  ┌────────────────────────────────────────────────────┐ │     │
-│  │  │          Observability Pipeline                    │ │     │
-│  │  │                                                    │ │     │
-│  │  │                                                    │ │     │
-│  │  │  ┌──────────┐              ┌──────────┐            │ │     │
-│  │  │  │Collector │──────────────▶│OpenSearch│           │ │     │
-│  │  │  │  (OTLP)  │              │ (Storage)│◀─────┐     │ │     │
-│  │  │  └────┬─────┘              └──────────┘      │     │ │     │
-│  │  │       │                                      │     │ │     │
-│  │  │       │ (Spanmetrics)                  (Query)     │ │     │
-│  │  │       │                                      │     │ │     │
-│  │  │  ┌────▼─────────┐                            │     │ │     │
-│  │  │  │  Prometheus  │────────────────────────────┘     │ │     │
-│  │  │  │   (Scrape)   │                                  │ │     │
-│  │  │  └────┬─────────┘                                  │ │     │
-│  │  │       │                                            │ │     │
-│  │  │       │ (Alert Rules)                              │ │     │
-│  │  │       │                                            │ │     │
-│  │  │  ┌────▼──────────┐                                 │ │     │
-│  │  │  │ AlertManager  │─────────────────────────────┐   │ │     │
-│  │  │  │  (Internal)   │                             │   │ │     │
-│  │  │  └───────────────┘                             │   │ │     │
-│  │  └───────────────────────────────────────────────┼┘   │ │     |
-│  └────────────────────────────────────────────────────┼─── │     │
-│                                                            │     │
-│  ┌──────────────────────────────────────────┐              │     │
-│  │       AWS Secrets Manager                │              │     │
-│  │  (JWT Secret, Slack Webhook)             │              │     │
-│  └──────────────────────────────────────────┘              │     |
-│                                                            │     |
-└────────────────────────────────────────────────────────────┘─────┘       
+   ![High-Level Architecture](./images/architecture.png)
                                                          
                                                  
 
@@ -218,14 +140,14 @@ Retriever is a **cloud-native observability platform** that deploys directly int
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/retriever.git
+git clone https://github.com/TeamRetriever/retriever.git
 cd retriever/cli
 
 # Install dependencies
 npm install
 
 # Build the CLI
-npm run build
+npm run buildF
 
 # Link globally (makes 'retriever' command available)
 npm link
@@ -443,12 +365,6 @@ retriever generate-token
 retriever generate-token --regenerate-secret
 ```
 
-**Token Details:**
-- Algorithm: HS256
-- Validity: 10 years
-- Issuer: retriever
-- Audience: mcp
-
 ---
 
 ## ⚙️ Configuration
@@ -496,21 +412,19 @@ aws secretsmanager update-secret \
   --region us-east-1
 ```
 
-Then redeploy AlertManager:
 ```bash
 retriever deploy --force-recreate
 ```
 
 ---
 
-## 📊 Monitoring & Alerts
+
 
 ### Data Flow
 
 ```
 Your App → Collector → OpenSearch (traces)
                     └→ Spanmetrics → Prometheus (metrics)
-                                   └→ AlertManager → Slack
 ```
 
 1. **Applications send traces** to Collector via OTLP (ports 4317/4318)
@@ -518,36 +432,7 @@ Your App → Collector → OpenSearch (traces)
    - Stores in OpenSearch for long-term retention
    - Generates metrics via spanmetrics connector
 3. **Prometheus scrapes metrics** from Collector (port 8889)
-4. **Alert rules** evaluate metric conditions every 30s
-5. **AlertManager** routes firing alerts to Slack
 
-### Instrumenting Your Applications
-
-#### Node.js (OpenTelemetry)
-
-```javascript
-const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
-const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
-const { Resource } = require('@opentelemetry/resources');
-const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
-
-const provider = new NodeTracerProvider({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'my-service',
-  }),
-});
-
-const exporter = new OTLPTraceExporter({
-  url: 'https://your-domain.com/collector:4317', // gRPC
-  // OR
-  url: 'https://your-domain.com/collector:4318', // HTTP
-});
-
-provider.addSpanProcessor(new BatchSpanProcessor(exporter));
-provider.register();
-```
-
----
 
 ## 🐛 Troubleshooting
 
@@ -580,16 +465,6 @@ aws logs tail /ecs/rvr-test-prometheus --region us-east-1 --since 5m
 
 ### Common Issues
 
-#### ❌ "Bad Gateway" errors
-
-**Cause:** Services starting in wrong order (auth-proxy before backend services)
-
-**Fix:**
-```bash
-retriever deploy --force-recreate
-```
-
-This recreates services in correct dependency order.
 
 #### ❌ "Certificate validation failed"
 
@@ -630,21 +505,6 @@ grpcurl -d '{"message":"test"}' \
 aws logs tail /ecs/rvr_collector --region us-east-1 --since 5m
 ```
 
-**Check OpenSearch health:**
-```bash
-# Port-forward to OpenSearch (running in private subnet)
-aws ecs execute-command \
-  --cluster retriever \
-  --task TASK_ID \
-  --container opensearch \
-  --command "/bin/bash" \
-  --interactive
-
-# Inside container:
-curl localhost:9200/_cluster/health
-```
-
-#### ❌ Alerts not firing
 
 **Check Prometheus is scraping:**
 ```bash
@@ -674,10 +534,7 @@ aws logs tail /ecs/rvr-test-alertmanager --region us-east-1 --since 5m | grep "c
      expr: histogram_quantile(0.95, rate(duration_milliseconds_bucket[5m])) > 200  # Changed from 100ms
      for: 10m  # Changed from 5m
    ```
-3. Redeploy:
-   ```bash
-   retriever deploy
-   ```
+
 
 ### Add Custom Alert Rules
 
@@ -787,44 +644,6 @@ aws s3 rm s3://retriever-tfstate-YOUR-ACCOUNT-ID --recursive
 aws s3 rb s3://retriever-tfstate-YOUR-ACCOUNT-ID
 ```
 
----
-
-## 🏢 Production Recommendations
-
-### Security
-
-1. **Rotate JWT tokens regularly**
-   ```bash
-   retriever generate-token --regenerate-secret
-   ```
-
-2. **Enable VPC Flow Logs** for network monitoring
-3. **Use AWS WAF** on the Application Load Balancer
-4. **Enable AWS GuardDuty** for threat detection
-5. **Restrict security group access** to known IP ranges
-
-### High Availability
-
-1. **Use 3+ availability zones** for ALB and ECS services
-2. **Enable ECS Service Auto Scaling** based on CPU/memory
-3. **Configure health checks** with appropriate thresholds
-4. **Set up CloudWatch alarms** for ECS service health
-
-### Cost Optimization
-
-1. **Use Fargate Spot** for non-critical services (up to 70% savings)
-2. **Enable S3 Lifecycle Policies** on trace storage
-3. **Adjust OpenSearch storage** retention policies
-4. **Right-size Fargate task definitions** (CPU/memory)
-
-### Monitoring
-
-1. **Set up CloudWatch dashboards** for ECS metrics
-2. **Enable Container Insights** for detailed container metrics
-3. **Configure SNS topics** for critical alerts
-4. **Monitor AWS service quotas** to prevent limits
-
----
 
 
 ## 📚 Additional Resources
