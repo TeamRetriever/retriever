@@ -183,4 +183,12 @@ resource "aws_ecs_service" "mcp" {
     container_name   = "mcp"
     container_port   = 3000
   }
+
+  # MCP connects to these services via Service Connect
+  # Must wait for them to be running so their DNS entries are discoverable
+  depends_on = [
+    aws_lb_listener.public-https,
+    aws_ecs_service.query,
+    aws_ecs_service.prometheus
+  ]
 }
