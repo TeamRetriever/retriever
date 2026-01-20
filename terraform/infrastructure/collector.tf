@@ -196,5 +196,9 @@ resource "aws_ecs_service" "rvr_collector" {
       }
     }
   }
+
+  depends_on = [
+    aws_ecs_service.rvr_opensearch
+  ]
 }
 
