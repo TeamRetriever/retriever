@@ -358,4 +358,13 @@ resource "aws_ecs_service" "auth_proxy" {
     container_name   = "auth-proxy"
     container_port   = 3001
   }
+
+  # Auth-proxy connects to these services via Service Connect
+  # Must wait for them to be running so their DNS entries are in /etc/hosts
+  depends_on = [
+    aws_lb_listener.public-https,
+    aws_ecs_service.query,
+    aws_ecs_service.prometheus,
+    aws_ecs_service.alertmanager
+  ]
 }

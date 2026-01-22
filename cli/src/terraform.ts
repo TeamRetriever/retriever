@@ -70,16 +70,202 @@ export function checkTerraformInstalled(): boolean {
 }
 
 /**
+ * Ensures the ECS task execution role exists with proper permissions
+ *
+ * Why: The Terraform configs expect this role to exist, but don't create it.
+ * We need to create it with CloudWatch Logs permissions before Terraform runs.
+ * This fixes two issues:
+ * 1. Missing ecsTaskExecutionRole causing Terraform data source errors
+ * 2. Missing logs:CreateLogGroup permission causing ECS task failures
+ */
+export async function ensureEcsTaskExecutionRole(): Promise<boolean> {
+  const spinner = ora('Checking ECS task execution role...').start();
+  const roleName = 'ecsTaskExecutionRole';
+
+  try {
+    // Check if role exists
+    try {
+      execSync(`aws iam get-role --role-name ${roleName}`, { stdio: 'pipe' });
+      spinner.text = 'Verifying CloudWatch Logs permissions...';
+
+      // Ensure CloudWatch Logs permissions are attached
+      const cloudwatchPolicy = {
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          Resource: "arn:aws:logs:*:*:*"
+        }]
+      };
+
+      execSync(
+        `aws iam put-role-policy --role-name ${roleName} --policy-name CloudWatchLogsPolicy --policy-document '${JSON.stringify(cloudwatchPolicy)}'`,
+        { stdio: 'pipe' }
+      );
+
+      spinner.succeed('ECS task execution role verified');
+      return true;
+
+    } catch {
+      // Role doesn't exist, create it
+      spinner.text = 'Creating ECS task execution role...';
+
+      const trustPolicy = {
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Principal: { Service: "ecs-tasks.amazonaws.com" },
+          Action: "sts:AssumeRole"
+        }]
+      };
+
+      execSync(
+        `aws iam create-role --role-name ${roleName} --assume-role-policy-document '${JSON.stringify(trustPolicy)}'`,
+        { stdio: 'pipe' }
+      );
+
+      // Attach standard ECS execution policy
+      execSync(
+        `aws iam attach-role-policy --role-name ${roleName} --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy`,
+        { stdio: 'pipe' }
+      );
+
+      // Add CloudWatch Logs permissions
+      const cloudwatchPolicy = {
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          Resource: "arn:aws:logs:*:*:*"
+        }]
+      };
+
+      execSync(
+        `aws iam put-role-policy --role-name ${roleName} --policy-name CloudWatchLogsPolicy --policy-document '${JSON.stringify(cloudwatchPolicy)}'`,
+        { stdio: 'pipe' }
+      );
+
+      spinner.succeed('ECS task execution role created');
+      return true;
+    }
+  } catch (error) {
+    spinner.fail('Failed to setup ECS task execution role');
+    console.error(chalk.red('\nError details:'));
+    if (error instanceof Error) {
+      console.error(error.message);
+    }
+    return false;
+  }
+}
+
+/**
+ * Sets up S3 backend for Terraform state storage
+ *
+ * Why: Each user deploys to their own AWS account, so we need a unique
+ * S3 bucket per account. This function creates a bucket based on the
+ * AWS account ID and generates the backend configuration file.
+ *
+ * The bucket name format: retriever-tfstate-{accountId}
+ */
+export async function setupS3Backend(region?: string): Promise<string | null> {
+  const spinner = ora('Setting up Terraform state storage...').start();
+  const awsRegion = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
+
+  try {
+    // Get AWS account ID
+    const accountId = execSync('aws sts get-caller-identity --query Account --output text', {
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    }).trim();
+
+    const bucketName = `retriever-tfstate-${accountId}`;
+
+    // Check if bucket exists, create if not
+    try {
+      execSync(`aws s3 ls s3://${bucketName} --region ${awsRegion}`, { stdio: 'pipe' });
+      spinner.text = 'State storage bucket found';
+    } catch {
+      // Bucket doesn't exist, create it
+      spinner.text = 'Creating state storage bucket...';
+
+      try {
+        // For us-east-1, don't specify LocationConstraint
+        if (awsRegion === 'us-east-1') {
+          execSync(`aws s3 mb s3://${bucketName} --region ${awsRegion}`, { stdio: 'pipe' });
+        } else {
+          execSync(
+            `aws s3api create-bucket --bucket ${bucketName} --region ${awsRegion} --create-bucket-configuration LocationConstraint=${awsRegion}`,
+            { stdio: 'pipe' }
+          );
+        }
+
+        // Enable versioning for safety
+        execSync(
+          `aws s3api put-bucket-versioning --bucket ${bucketName} --region ${awsRegion} --versioning-configuration Status=Enabled`,
+          { stdio: 'pipe' }
+        );
+
+        spinner.text = 'State storage bucket created';
+      } catch (createError) {
+        spinner.fail('Failed to create state storage bucket');
+        console.error(chalk.red('\nError creating S3 bucket. Falling back to local state.'));
+        return null;
+      }
+    }
+
+    // Generate backend config file
+    const backendConfigDir = path.join(TERRAFORM_DIR, 'backend_configs');
+    const backendConfigPath = path.join(backendConfigDir, 's3_state.tfbackend');
+
+    const backendConfig = `bucket = "${bucketName}"
+key    = "retriever/terraform.tfstate"
+region = "${awsRegion}"
+`;
+
+    try {
+      await fs.mkdir(backendConfigDir, { recursive: true });
+      await fs.writeFile(backendConfigPath, backendConfig, 'utf-8');
+    } catch (writeError) {
+      spinner.fail('Failed to write backend config');
+      return null;
+    }
+
+    spinner.succeed('Terraform state storage configured');
+    return backendConfigPath;
+
+  } catch (error) {
+    spinner.fail('Failed to setup S3 backend');
+    console.log(chalk.yellow('Falling back to local state storage...'));
+    return null;
+  }
+}
+
+/**
  * Initializes Terraform in the infrastructure directory
  *
  * Why: `terraform init` downloads provider plugins (AWS SDK) and
  * sets up the backend. This must be run before plan or apply.
  */
-export async function terraformInit(): Promise<boolean> {
+export async function terraformInit(backendConfigPath?: string | null): Promise<boolean> {
   const spinner = ora('Initializing Terraform...').start();
 
   try {
-    execSync('terraform init', {
+    let command = 'terraform init';
+
+    // If we have a backend config, use it with -reconfigure to handle backend changes
+    if (backendConfigPath) {
+      command += ` -backend-config="${backendConfigPath}" -reconfigure`;
+    }
+
+    execSync(command, {
       cwd: TERRAFORM_DIR,
       stdio: 'pipe'
     });
@@ -132,64 +318,6 @@ export async function terraformPlan(): Promise<boolean> {
   }
 }
 
-/**
- * Checks if any ECS services are missing Service Connect configuration
- *
- * Why: AWS ECS has a limitation where Service Connect configuration
- * cannot always be updated in-place. If services exist without Service
- * Connect enabled, they need to be recreated.
- *
- * This function detects services that need recreation and returns
- * the Terraform resource addresses to pass to -replace.
- */
-export async function checkServiceConnectDrift(region?: string): Promise<string[]> {
-  const servicesNeedingRecreation: string[] = [];
-
-  // Get region from environment or parameter
-  const awsRegion = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
-
-  // Map of AWS service names to Terraform resource names
-  const serviceMapping: Record<string, string> = {
-    'rvr_query': 'aws_ecs_service.query',
-    'rvr_auth_proxy': 'aws_ecs_service.auth_proxy',
-    'rvr_prometheus': 'aws_ecs_service.prometheus',
-    'rvr_alertmanager': 'aws_ecs_service.alertmanager',
-    'rvr_mcp': 'aws_ecs_service.mcp',
-    'rvr_collector': 'aws_ecs_service.rvr_collector',
-    'rvr_opensearch': 'aws_ecs_service.rvr_opensearch'
-  };
-
-  try {
-    // Check each service for Service Connect configuration
-    for (const [serviceName, tfResource] of Object.entries(serviceMapping)) {
-      try {
-        const result = execSync(
-          `aws ecs describe-services --cluster retriever --services ${serviceName} --region ${awsRegion} --query 'services[0].serviceConnectConfiguration.enabled' --output text 2>/dev/null`,
-          {encoding: 'utf-8', stdio: 'pipe'}
-        ).trim();
-
-        // If service exists but Service Connect is not enabled
-        // AWS CLI returns "None" when serviceConnectConfiguration is null
-        // AWS CLI returns "False" when serviceConnectConfiguration.enabled is false
-        // AWS CLI returns "True" when serviceConnectConfiguration.enabled is true
-        // Empty string means the service doesn't exist
-        const needsRecreation = result && result !== '' && result !== 'True' && result !== 'true';
-
-        if (needsRecreation) {
-          // Service exists without Service Connect - needs recreation
-          servicesNeedingRecreation.push(tfResource);
-        }
-      } catch (error) {
-        // Service doesn't exist yet or query failed - that's fine, skip it
-      }
-    }
-  } catch (error) {
-    // If we can't check, just proceed without drift detection
-    console.log(chalk.yellow('Could not check for Service Connect drift. Proceeding with normal deployment.'));
-  }
-
-  return servicesNeedingRecreation;
-}
 
 /**
  * Applies the Terraform configuration to deploy infrastructure
@@ -200,22 +328,20 @@ export async function checkServiceConnectDrift(region?: string): Promise<string[
  * We use -auto-approve because the user already confirmed via the
  * interactive prompt in the deploy command.
  *
- * The function automatically detects if services need to be recreated
- * due to missing Service Connect configuration (a known AWS/Terraform
- * limitation). It can also force recreation via the forceRecreate param.
+ * The forceRecreate param allows forcing recreation of all ECS services
+ * if needed for troubleshooting.
  */
-export async function terraformApply(forceRecreate: boolean = false, region?: string): Promise<boolean> {
-  const spinner = ora('Checking for configuration drift...').start();
+export async function terraformApply(forceRecreate: boolean = false): Promise<boolean> {
+  const spinner = ora('Starting deployment...').start();
 
   try {
-    // Check if any services need recreation due to Service Connect drift
-    let servicesToReplace: string[];
-    servicesToReplace = [];
+    // Build the terraform apply command
+    let command = 'terraform apply -auto-approve -no-color';
 
     if (forceRecreate) {
       // Force recreation of all ECS services
       spinner.text = 'Force recreation requested - will recreate all ECS services';
-      servicesToReplace = [
+      const servicesToReplace = [
         'aws_ecs_service.query',
         'aws_ecs_service.auth_proxy',
         'aws_ecs_service.prometheus',
@@ -224,33 +350,13 @@ export async function terraformApply(forceRecreate: boolean = false, region?: st
         'aws_ecs_service.rvr_collector',
         'aws_ecs_service.rvr_opensearch'
       ];
-    } else {
-      // Auto-detect services that need recreation
-      servicesToReplace = await checkServiceConnectDrift(region);
 
-      if (servicesToReplace.length > 0) {
-        spinner.succeed('Detected services without Service Connect');
-        console.log(chalk.yellow('⚠️  The following services will be recreated to enable Service Connect:'));
-        servicesToReplace.forEach(svc => {
-          console.log(chalk.yellow(`   - ${svc}`));
-        });
-        console.log(chalk.gray('\n   (This is required due to AWS ECS Service Connect limitations)\n'));
-      } else {
-        spinner.succeed('No configuration drift detected');
-      }
-    }
-
-    // Build the terraform apply command
-    let command = 'terraform apply -auto-approve -no-color';
-
-    if (servicesToReplace.length > 0) {
-      // Add -replace flags for each service that needs recreation
       servicesToReplace.forEach(svc => {
         command += ` -replace="${svc}"`;
       });
     }
 
-    spinner.succeed('Starting deployment...');
+    spinner.succeed('Deploying infrastructure...');
     console.log(chalk.cyan('\n━━━ Terraform Apply ━━━\n'));
     console.log(chalk.gray('This may take several minutes. You\'ll see live progress below:\n'));
 
@@ -309,108 +415,6 @@ export async function getTerraformOutputs(): Promise<Record<string, any>> {
   }
 }
 
-/**
- * Verifies that Service Connect is properly configured on deployed services
- *
- * Why: After deployment, we should verify that Service Connect was actually
- * applied to all services. This catches any issues early before users try
- * to access the services and get DNS resolution errors.
- *
- * We check for Service Connect sidecar containers in running tasks, which is
- * more reliable than the ECS service API (which sometimes doesn't return
- * serviceConnectConfiguration even when Service Connect is active).
- *
- * Returns: { success: boolean, servicesChecked: number, servicesMissingConnect: string[] }
- */
-export async function verifyServiceConnect(region?: string): Promise<{
-  success: boolean;
-  servicesChecked: number;
-  servicesMissingConnect: string[];
-}> {
-  const awsRegion = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
-  const spinner = ora('Verifying Service Connect configuration...').start();
-
-  const serviceNames = [
-    'rvr_query',
-    'rvr_auth_proxy',
-    'rvr_prometheus',
-    'rvr_alertmanager',
-    'rvr_mcp',
-    'rvr_collector',
-    'rvr_opensearch'
-  ];
-
-  const servicesMissingConnect: string[] = [];
-  let servicesChecked = 0;
-
-  try {
-    for (const serviceName of serviceNames) {
-      try {
-        // Get the running task for this service
-        const taskArn = execSync(
-          `aws ecs list-tasks --cluster retriever --service-name ${serviceName} --region ${awsRegion} --query 'taskArns[0]' --output text 2>/dev/null`,
-          {encoding: 'utf-8', stdio: 'pipe'}
-        ).trim();
-
-        // Skip if no task is running
-        if (!taskArn || taskArn === 'None' || taskArn === '') {
-          continue;
-        }
-
-        servicesChecked++;
-
-        // Check if the task has a Service Connect sidecar container
-        const containers = execSync(
-          `aws ecs describe-tasks --cluster retriever --tasks ${taskArn} --region ${awsRegion} --query 'tasks[0].containers[*].name' --output json 2>/dev/null`,
-          {encoding: 'utf-8', stdio: 'pipe'}
-        ).trim();
-
-        const containerNames = JSON.parse(containers);
-        const hasServiceConnect = containerNames.some((name: string) =>
-          name.startsWith('ecs-service-connect-')
-        );
-
-        if (!hasServiceConnect) {
-          servicesMissingConnect.push(serviceName);
-        }
-      } catch (error) {
-        // Service might not exist or query failed - skip
-      }
-    }
-
-    if (servicesMissingConnect.length > 0) {
-      spinner.fail('Service Connect verification failed');
-      console.log(chalk.red('\n⚠️  The following services are missing Service Connect:\n'));
-      servicesMissingConnect.forEach(svc => {
-        console.log(chalk.red(`   - ${svc}`));
-      });
-      console.log(chalk.yellow('\n   Run'), chalk.cyan('retriever deploy --force-recreate'), chalk.yellow('to fix this issue.\n'));
-
-      return {
-        success: false,
-        servicesChecked,
-        servicesMissingConnect
-      };
-    }
-
-    spinner.succeed(`Service Connect verified on ${servicesChecked} services`);
-
-    return {
-      success: true,
-      servicesChecked,
-      servicesMissingConnect: []
-    };
-  } catch (error) {
-    spinner.warn('Could not verify Service Connect configuration');
-    console.log(chalk.gray('   Skipping verification check\n'));
-
-    return {
-      success: true, // Don't fail deployment if verification fails
-      servicesChecked: 0,
-      servicesMissingConnect: []
-    };
-  }
-}
 
 /**
  * Validates that the Terraform directory exists
