@@ -1,9 +1,3 @@
-resource "aws_acm_certificate" "user-cert" {
-  private_key       = file(var.USER_CERTIFICATE_PRIVATE_KEY_FILE)
-  certificate_body  = file(var.USER_CERTIFICATE_BODY_FILE)
-  certificate_chain = file(var.USER_CERTIFICATE_CHAIN_FILE)
-}
-
 resource "aws_security_group" "alb-sg" {
   name        = "rvr-public-endpoint-sg"
   description = "Allow TLS traffic. Temporarily allow HTTP traffic for testing purposes."
@@ -116,7 +110,7 @@ resource "aws_lb_listener" "public-https" {
   load_balancer_arn = aws_lb.public-endpoint.arn
   port              = "443"
   protocol          = "HTTPS"
-  certificate_arn   = aws_acm_certificate.user-cert.arn
+  certificate_arn   = var.CERTIFICATE_ARN
 
   default_action {
     type             = "forward"
