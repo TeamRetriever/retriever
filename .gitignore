@@ -79,3 +79,9 @@ terraform.rc
 sample_trace.json
 .retriever-config.json
 .retriever-mcp-config.json
+
+
+
+#ascii cli stuff 
+cli-directory 
+setup-client 
