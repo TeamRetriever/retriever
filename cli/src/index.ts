@@ -27,21 +27,9 @@ import {
   terraformApply,
   getTerraformOutputs
 } from './terraform.js';
+import {logo} from './logo.js';
 
-const ASCII_ART = `
-${chalk.cyan('╔═══════════════════════════════════════════════════════════════╗')}
-${chalk.cyan('║')}                                                               ${chalk.cyan('║')}
-${chalk.cyan('║')}   ${chalk.bold.yellow('██████╗ ███████╗████████╗██████╗ ██╗███████╗██╗   ██╗███████╗██████╗')} ${chalk.cyan('║')}
-${chalk.cyan('║')}   ${chalk.bold.yellow('██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██║██╔════╝██║   ██║██╔════╝██╔══██╗')}${chalk.cyan('║')}
-${chalk.cyan('║')}   ${chalk.bold.yellow('██████╔╝█████╗     ██║   ██████╔╝██║█████╗  ██║   ██║█████╗  ██████╔╝')}${chalk.cyan('║')}
-${chalk.cyan('║')}   ${chalk.bold.yellow('██╔══██╗██╔══╝     ██║   ██╔══██╗██║██╔══╝  ╚██╗ ██╔╝██╔══╝  ██╔══██╗')}${chalk.cyan('║')}
-${chalk.cyan('║')}   ${chalk.bold.yellow('██║  ██║███████╗   ██║   ██║  ██║██║███████╗ ╚████╔╝ ███████╗██║  ██║')}${chalk.cyan('║')}
-${chalk.cyan('║')}   ${chalk.bold.yellow('╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚══════╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝')}${chalk.cyan('║')}
-${chalk.cyan('║')}                                                               ${chalk.cyan('║')}
-${chalk.cyan('║')}        ${chalk.white('Self-Hosted Distributed Observability Platform')}       ${chalk.cyan('║')}
-${chalk.cyan('║')}                                                               ${chalk.cyan('║')}
-${chalk.cyan('╚═══════════════════════════════════════════════════════════════╝')}
-`;
+const ASCII_ART = logo + `\n        ${chalk.white('Self-Hosted Distributed Observability Platform')}\n`;
 
 interface AWSCredentials {
   account: string;
