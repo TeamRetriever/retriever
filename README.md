@@ -450,18 +450,8 @@ aws ecs describe-services \
   --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount}'
 ```
 
-### View Service Logs
 
-```bash
-# Tail auth-proxy logs
-aws logs tail /ecs/rvr_auth_proxy --region us-east-1 --follow
 
-# View collector logs
-aws logs tail /ecs/rvr_collector --region us-east-1 --since 10m
-
-# Check Prometheus logs
-aws logs tail /ecs/rvr-test-prometheus --region us-east-1 --since 5m
-```
 
 ### Common Issues
 
