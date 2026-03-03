@@ -95,10 +95,6 @@ app.use(
   app.use(
     '/',
     requireAuth,
-    (req, _res, next) => {
-      console.log('>>> Root route matched:', req.path, req.url);
-      next();
-    },
     createProxyMiddleware({
       target: JAEGER_URL,
       changeOrigin: true,
