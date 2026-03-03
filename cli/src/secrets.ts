@@ -169,14 +169,14 @@ export async function getSecretFromSecretsManager(region: string): Promise<strin
  * - sub (subject): 'mcp-access' - what the token grants access to
  * - aud (audience): 'mcp' - who should accept this token
  *
- * The token is valid for 10 years by default, which provides long-term
- * access without frequent regeneration. Users can regenerate anytime.
+ * The token is valid for 30 days by default, providing a balance between
+ * security and convenience. Users can regenerate anytime.
  *
  * @param secret The JWT secret to sign with
- * @param expiresIn Token expiration (default: 3650 days = 10 years)
+ * @param expiresIn Token expiration (default: 30 days)
  * @returns Signed JWT token string
  */
-export function generateJWTToken(secret: string, expiresIn: string = '3650d'): string {
+export function generateJWTToken(secret: string, expiresIn: string = '30d'): string {
   const payload = {
     iss: 'retriever',
     sub: 'mcp-access',
@@ -194,13 +194,13 @@ export function generateJWTToken(secret: string, expiresIn: string = '3650d'): s
  *
  * Why: We want to proactively regenerate tokens before they expire to
  * avoid service disruption. If a token expires within the threshold
- * (default 30 days), we'll regenerate it during deployment.
+ * (default 7 days), we'll regenerate it during deployment.
  *
  * @param token JWT token string to check
  * @param daysThreshold Days before expiration to consider "expiring soon"
  * @returns true if token expires within threshold days or is expired
  */
-export function isTokenExpiringSoon(token: string, daysThreshold: number = 30): boolean {
+export function isTokenExpiringSoon(token: string, daysThreshold: number = 7): boolean {
   try {
     // Decode without verification (we just need the expiration time)
     const decoded = jwt.decode(token) as { exp?: number };

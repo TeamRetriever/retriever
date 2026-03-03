@@ -75,7 +75,7 @@ resource "aws_ecs_task_definition" "auth_proxy" {
       },
       {
         "name": "COOKIE_MAX_AGE_DAYS",
-        "value": "7"
+        "value": "30"
       },
       {
         "name": "PORT",
