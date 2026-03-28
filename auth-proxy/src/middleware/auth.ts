@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 
 export const JWT_SECRET = process.env.JWT_SECRET!; // We validate this exists in server.ts
 export const COOKIE_NAME = 'retriever_auth';
-export const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7');
+export const COOKIE_MAX_AGE_DAYS = parseInt(process.env.COOKIE_MAX_AGE_DAYS || '30');
 
 
 // this will load the HTML
