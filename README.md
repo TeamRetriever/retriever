@@ -67,7 +67,7 @@ Retriever is a **cloud-native observability platform** that deploys directly int
 ## 🏗️ Architecture
 
 ### High-Level Overview
-   ![High-Level Architecture](./images/architecture.png)
+   ![High-Level Architecture](./Images/architecture.png)
                                                          
                                                  
 
